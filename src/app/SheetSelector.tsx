@@ -11,6 +11,9 @@ export default function SheetSelector({ onSelect }: { onSelect?: (sheet: Sheet) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [sheetName, setSheetName] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -31,6 +34,29 @@ export default function SheetSelector({ onSelect }: { onSelect?: (sheet: Sheet) 
     if (onSelect) onSelect(sheet);
     // Optionally persist selection
     localStorage.setItem("selectedSheetId", sheet.id);
+  }
+
+  async function handleCreate() {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const res = await fetch("/api/sheets/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: sheetName }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unknown error");
+      const newSheet = { id: data.id, name: data.name };
+      setSheets(prev => [...prev, newSheet]);
+      handleSelect(newSheet);
+      setSheetName("");
+    } catch (err: any) {
+      setCreateError(err.message || "Failed to create sheet");
+    } finally {
+      setCreating(false);
+    }
   }
 
   return (
@@ -59,12 +85,24 @@ export default function SheetSelector({ onSelect }: { onSelect?: (sheet: Sheet) 
           ))}
         </ul>
       )}
-      <button
-        style={{ marginTop: 16, padding: '6px 12px', borderRadius: 4, border: '1px solid #0070f3', background: '#f0f8ff', cursor: 'pointer' }}
-        onClick={() => alert('Create new sheet functionality coming soon!')}
-      >
-        + Create New Sheet
-      </button>
+      <div style={{ marginTop: 16 }}>
+        <input
+          type="text"
+          placeholder="Sheet name"
+          value={sheetName}
+          onChange={e => setSheetName(e.target.value)}
+          style={{ padding: '6px', borderRadius: 4, border: '1px solid #ccc', marginRight: 8, width: 180 }}
+          disabled={creating}
+        />
+        <button
+          style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid #0070f3', background: '#f0f8ff', cursor: 'pointer' }}
+          onClick={handleCreate}
+          disabled={creating || !sheetName.trim()}
+        >
+          {creating ? 'Creating...' : '+ Create New Sheet'}
+        </button>
+      </div>
+      {createError && <p style={{ color: 'red' }}>{createError}</p>}
     </div>
   );
 } 
