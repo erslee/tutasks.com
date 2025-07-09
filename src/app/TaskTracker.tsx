@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 
 interface Task {
   id: string;
@@ -9,12 +10,63 @@ interface Task {
   time: string;
 }
 
+const years = [2023, 2024, 2025];
+const months = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
+function getDaysInMonth(year: number, monthIndex: number) {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
 export default function TaskTracker() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [number, setNumber] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+
+  // Today logic
+  const today = new Date();
+  // Calendar state (default to today)
+  const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth());
+  const [selectedDay, setSelectedDay] = useState<number>(today.getDate());
+
+  const handleToday = () => {
+    setSelectedYear(today.getFullYear());
+    setSelectedMonth(today.getMonth());
+    setSelectedDay(today.getDate());
+  };
+
+  // Aggregation helpers
+  function getYearStats(year: number) {
+    const filtered = tasks.filter(t => new Date(t.date).getFullYear() === year);
+    return {
+      count: filtered.length,
+      hours: filtered.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0),
+    };
+  }
+  function getMonthStats(year: number, month: number) {
+    const filtered = tasks.filter(t => {
+      const d = new Date(t.date);
+      return d.getFullYear() === year && d.getMonth() === month;
+    });
+    return {
+      count: filtered.length,
+      hours: filtered.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0),
+    };
+  }
+  function getDayStats(year: number, month: number, day: number) {
+    const filtered = tasks.filter(t => {
+      const d = new Date(t.date);
+      return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
+    });
+    return {
+      count: filtered.length,
+      hours: filtered.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0),
+    };
+  }
 
   function handleAdd() {
     if (!number.trim() || !description.trim() || !date.trim() || !time.trim()) return;
@@ -38,73 +90,209 @@ export default function TaskTracker() {
     setTasks(prev => prev.filter(t => t.id !== id));
   }
 
+  // Filter tasks for selected day
+  let visibleTasks: Task[] = [];
+  if (selectedYear !== null && selectedMonth !== null && selectedDay !== null) {
+    visibleTasks = tasks.filter(t => {
+      const d = new Date(t.date);
+      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth && d.getDate() === selectedDay;
+    });
+  }
+
+  const { data: session } = useSession();
+
+  // Calendar UI
   return (
     <div style={{ background: '#323438', minHeight: '100vh', color: '#e0e0e0', fontFamily: 'sans-serif', padding: 0 }}>
       <header style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', fontSize: 32, fontWeight: 600 }}>
         <span>Tu Tasks</span>
         <div style={{ flex: 1 }} />
         <a href="#" style={{ color: '#b0b0b0', marginRight: 16, textDecoration: 'underline', fontSize: 16 }}>Statistic</a>
-        <button style={{ background: '#44474e', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontWeight: 500, fontSize: 16 }}>Sign Out (Vlad P)</button>
+        <button
+          onClick={() => signOut()}
+          style={{ background: '#44474e', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontWeight: 500, fontSize: 16, display: 'flex', alignItems: 'center', gap: 10 }}
+        >
+          {session?.user?.image && (
+            <img src={session.user.image} alt="avatar" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', background: '#222' }} />
+          )}
+          {session?.user?.name && <span style={{ fontSize: 16, fontWeight: 400 }}>{session.user.name}</span>}
+          <span style={{ fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Sign Out</span>
+        </button>
       </header>
       <section style={{ background: '#232428', borderRadius: 8, margin: '0 16px', padding: 16, marginBottom: 24 }}>
         {/* Calendar Navigation */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 8 }}>
-          <div style={{ background: '#323438', borderRadius: 6, padding: '8px 24px', fontWeight: 600, fontSize: 18 }}>2024 <span style={{ color: '#b0b0b0', fontWeight: 400 }}>(86/326)</span></div>
-          <div style={{ background: '#323438', borderRadius: 6, padding: '8px 24px', fontWeight: 600, fontSize: 18 }}>2025 <span style={{ color: '#b0b0b0', fontWeight: 400 }}>(288/1046)</span></div>
-          <div style={{ background: '#323438', borderRadius: 6, padding: '8px 24px', fontWeight: 600, fontSize: 18 }}>Today</div>
+        <div style={{ display: 'flex', overflowX: 'auto', gap: 16, marginBottom: 8, whiteSpace: 'nowrap' }}>
+          {years.map(y => {
+            const stats = getYearStats(y);
+            return (
+              <div
+                key={y}
+                onClick={() => { setSelectedYear(y); setSelectedMonth(0); setSelectedDay(1); }}
+                style={{
+                  background: selectedYear === y ? '#44474e' : '#323438',
+                  borderRadius: 6,
+                  padding: '8px 24px',
+                  fontWeight: 600,
+                  fontSize: 18,
+                  color: selectedYear === y ? '#fff' : '#b0b0b0',
+                  cursor: 'pointer',
+                  border: selectedYear === y ? '2px solid #3bb0d6' : 'none',
+                  transition: 'all 0.15s',
+                  minWidth: 90,
+                  textAlign: 'center',
+                  userSelect: 'none',
+                }}
+              >
+                {y} <span style={{ color: '#b0b0b0', fontWeight: 400, fontSize: 15 }}> {stats.count} ({stats.hours})</span>
+              </div>
+            );
+          })}
+          <div
+            onClick={handleToday}
+            style={{
+              background: '#3bb0d6',
+              borderRadius: 6,
+              padding: '8px 24px',
+              fontWeight: 600,
+              fontSize: 18,
+              color: '#fff',
+              cursor: 'pointer',
+              minWidth: 90,
+              textAlign: 'center',
+              userSelect: 'none',
+              marginLeft: 12,
+              boxShadow: '0 2px 8px 0 rgba(59,176,214,0.10)'
+            }}
+          >
+            Today
+          </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-          {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
-            <div key={m} style={{ background: '#232428', borderRadius: 4, padding: '4px 10px', fontWeight: 500, fontSize: 15, color: '#b0b0b0', border: '1px solid #44474e', margin: '0 1px' }}>{m}<br /><span style={{ fontSize: 12, color: '#888' }}>{Math.floor(Math.random()*60)+30} ({Math.floor(Math.random()*180)+150})</span></div>
-          ))}
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-          {[...Array(20)].map((_, i) => (
-            <div key={i} style={{ background: i===4||i===11||i===18 ? '#232428' : '#323438', color: i===4||i===11||i===18 ? '#e74c3c' : '#e0e0e0', borderRadius: 3, padding: '2px 10px', fontWeight: 500, fontSize: 15, border: '1px solid #44474e', margin: '0 1px' }}>{i+1}<br /><span style={{ fontSize: 11, color: '#888' }}>{Math.floor(Math.random()*5)+1} ({Math.floor(Math.random()*10)+5})</span></div>
-          ))}
-        </div>
+        {selectedYear !== null && (
+          <div style={{ display: 'flex', overflowX: 'auto', gap: 8, marginBottom: 8, whiteSpace: 'nowrap' }}>
+            {months.map((m, i) => {
+              const stats = getMonthStats(selectedYear, i);
+              return (
+                <div
+                  key={m}
+                  onClick={() => { setSelectedMonth(i); setSelectedDay(1); }}
+                  style={{
+                    background: selectedMonth === i ? '#44474e' : '#232428',
+                    borderRadius: 4,
+                    padding: '4px 16px',
+                    fontWeight: 500,
+                    fontSize: 15,
+                    color: selectedMonth === i ? '#fff' : '#b0b0b0',
+                    border: selectedMonth === i ? '2px solid #3bb0d6' : '1px solid #44474e',
+                    margin: '0 1px',
+                    cursor: 'pointer',
+                    minWidth: 70,
+                    textAlign: 'center',
+                    userSelect: 'none',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {m}<br /><span style={{ fontSize: 12, color: '#888' }}>{stats.count} ({stats.hours})</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {selectedYear !== null && selectedMonth !== null && (
+          <div style={{ display: 'flex', overflowX: 'auto', gap: 2, whiteSpace: 'nowrap' }}>
+            {Array.from({ length: getDaysInMonth(selectedYear, selectedMonth) }, (_, i) => {
+              const day = i + 1;
+              const dateObj = new Date(selectedYear, selectedMonth, day);
+              const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+              const stats = getDayStats(selectedYear, selectedMonth, day);
+              return (
+                <div
+                  key={day}
+                  onClick={() => setSelectedDay(day)}
+                  style={{
+                    background: selectedDay === day
+                      ? '#44474e'
+                      : isWeekend
+                        ? '#55585e'
+                        : '#323438',
+                    color: selectedDay === day
+                      ? '#fff'
+                      : isWeekend
+                        ? '#b0b0b0'
+                        : '#e0e0e0',
+                    borderRadius: 3,
+                    padding: '4px 8px',
+                    fontWeight: 500,
+                    fontSize: 15,
+                    border: selectedDay === day ? '2px solid #3bb0d6' : '1px solid #44474e',
+                    margin: '0 1px',
+                    cursor: 'pointer',
+                    minWidth: 40,
+                    textAlign: 'center',
+                    userSelect: 'none',
+                    transition: 'all 0.15s',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: 16, fontWeight: 600 }}>{day}</span>
+                  <span style={{ fontSize: 11, color: '#b0b0b0', marginTop: 2, lineHeight: 1 }}>{stats.count} <span style={{ color: '#888' }}>({stats.hours})</span></span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
       <section style={{ margin: '0 32px', marginBottom: 24 }}>
         <h2 style={{ fontWeight: 500, fontSize: 26, margin: '32px 0 16px 0', color: '#e0e0e0' }}>Task List</h2>
-        {tasks.map(task => (
-          <div key={task.id} style={{
-            background: '#393b40',
-            borderRadius: 8,
-            padding: '18px 24px 12px 24px',
-            marginBottom: 18,
-            border: '1px solid #232428',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)'
-          }}>
-            <div style={{ fontSize: 20, fontWeight: 500, color: '#fff', marginBottom: 8 }}>
-              {task.description}
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              fontSize: 15,
-              color: '#b0b0b0',
-              gap: 32,
-              marginBottom: 0,
-              marginTop: 8,
-              justifyContent: 'space-between',
-              width: '100%'
-            }}>
-              <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-                <span>Task Number: <span style={{ color: '#b0b0b0', fontWeight: 500 }}>{task.number} <span role="img" aria-label="calendar">📅</span></span></span>
-                <span>Created at: <span style={{ color: '#b0b0b0', fontWeight: 500 }}>{task.date}</span></span>
-                <span>time: <span style={{ color: '#b0b0b0', fontWeight: 500 }}>{task.time}</span></span>
+        {selectedYear !== null && selectedMonth !== null && selectedDay !== null ? (
+          visibleTasks.length > 0 ? (
+            visibleTasks.map(task => (
+              <div key={task.id} style={{
+                background: '#393b40',
+                borderRadius: 8,
+                padding: '18px 24px 12px 24px',
+                marginBottom: 18,
+                border: '1px solid #232428',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)'
+              }}>
+                <div style={{ fontSize: 20, fontWeight: 500, color: '#fff', marginBottom: 8 }}>
+                  {task.description}
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: 15,
+                  color: '#b0b0b0',
+                  gap: 32,
+                  marginBottom: 0,
+                  marginTop: 8,
+                  justifyContent: 'space-between',
+                  width: '100%'
+                }}>
+                  <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
+                    <span>Task Number: <span style={{ color: '#b0b0b0', fontWeight: 500 }}>{task.number} <span role="img" aria-label="calendar">📅</span></span></span>
+                    <span>Created at: <span style={{ color: '#b0b0b0', fontWeight: 500 }}>{task.date}</span></span>
+                    <span>time: <span style={{ color: '#b0b0b0', fontWeight: 500 }}>{task.time}</span></span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button style={{ background: '#3bb0d6', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span role="img" aria-label="calendar">📅</span>
+                    </button>
+                    <button onClick={() => handleDelete(task.id)} style={{ background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15 }}>Delete</button>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button style={{ background: '#3bb0d6', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span role="img" aria-label="calendar">📅</span>
-                </button>
-                <button onClick={() => handleDelete(task.id)} style={{ background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15 }}>Delete</button>
-              </div>
-            </div>
-          </div>
-        ))}
+            ))
+          ) : (
+            <div style={{ color: '#b0b0b0', fontSize: 18, marginTop: 32 }}>No tasks for this day.</div>
+          )
+        ) : (
+          <div style={{ color: '#b0b0b0', fontSize: 18, marginTop: 32 }}>Select a day to view tasks.</div>
+        )}
       </section>
       <footer style={{ position: 'fixed', left: 0, bottom: 0, width: '100%', background: '#232428', padding: 16, display: 'flex', gap: 12, alignItems: 'center', zIndex: 10 }}>
         <input placeholder="Task Number" style={{ flex: '0 0 120px', padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={number} onChange={e => setNumber(e.target.value)} />
