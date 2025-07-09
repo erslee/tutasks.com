@@ -272,12 +272,41 @@ export default function TaskTracker() {
       .finally(() => setLoadingTasks(false));
   }, [selectedYear, selectedMonth]);
 
+  useEffect(() => {
+    function handlePasteShortcut(e: KeyboardEvent) {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'v') {
+        if (selectedYear !== null && selectedMonth !== null && selectedDay !== null) {
+          navigator.clipboard.readText().then(text => {
+            // Only match if pattern is {text} - {text} and both sides are non-empty
+            const match = text.match(/^(^[\w\d\-]+)\s-\s(.+)/);
+            if (match) {
+              e.preventDefault();
+              setNumber(match[1].trim());
+              setDescription(match[2].trim());
+            }
+          });
+        }
+      }
+    }
+    window.addEventListener('keydown', handlePasteShortcut);
+    return () => window.removeEventListener('keydown', handlePasteShortcut);
+  }, [selectedYear, selectedMonth, selectedDay]);
+
   const { data: session } = useSession();
   // Get selected sheet name from localStorage
   const [sheetName, setSheetName] = useState<string | null>(null);
   useEffect(() => {
     setSheetName(localStorage.getItem("selectedSheetName"));
   }, []);
+
+  // Copy task number and description to clipboard
+  function handleCopy(task: Task) {
+    if (typeof window !== 'undefined' && navigator.clipboard) {
+      const text = `${task.number} - ${task.description}`;
+      navigator.clipboard.writeText(text);
+    }
+  }
 
   // Calendar UI
   return (
@@ -471,9 +500,17 @@ export default function TaskTracker() {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       style={{ background: '#3bb0d6', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}
-                      onClick={e => e.stopPropagation()}
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleCopy(task);
+                          const button = e.target as HTMLButtonElement;
+                          button.textContent = 'Copied!';
+                          setTimeout(() => {
+                            button.textContent = '📋';
+                          }, 1000);
+                        }}
                     >
-                      <span role="img" aria-label="calendar">📅</span>
+                      <span role="img" aria-label="copy">📋</span>
                     </button>
                     <button
                       onClick={e => { e.stopPropagation(); handleDelete(task.uid || ''); }}
