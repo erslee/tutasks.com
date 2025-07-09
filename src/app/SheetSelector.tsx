@@ -35,6 +35,7 @@ export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: 
     if (onSelectSheet) onSelectSheet(sheet);
     // Optionally persist selection
     localStorage.setItem("selectedSheetId", sheet.id);
+    localStorage.setItem("selectedSheetName", sheet.name);
   }
 
   async function handleCreate() {

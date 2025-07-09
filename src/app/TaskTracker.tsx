@@ -1,9 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { useRef } from "react";
 
 interface Task {
-  id: string;
+  uid?: string;
+  id?: string;
   number: string;
   description: string;
   date: string;
@@ -19,12 +21,24 @@ function getDaysInMonth(year: number, monthIndex: number) {
   return new Date(year, monthIndex + 1, 0).getDate();
 }
 
+function generateUID() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
 export default function TaskTracker() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const [number, setNumber] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
+  const [editTask, setEditTask] = useState<Task | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   // Today logic
   const today = new Date();
@@ -38,6 +52,16 @@ export default function TaskTracker() {
     setSelectedMonth(today.getMonth());
     setSelectedDay(today.getDate());
   };
+
+  // Prefill date field when selected day changes
+  useEffect(() => {
+    if (selectedYear !== null && selectedMonth !== null && selectedDay !== null) {
+      const yyyy = selectedYear;
+      const mm = String(selectedMonth + 1).padStart(2, '0');
+      const dd = String(selectedDay).padStart(2, '0');
+      setDate(`${yyyy}-${mm}-${dd}`);
+    }
+  }, [selectedYear, selectedMonth, selectedDay]);
 
   // Aggregation helpers
   function getYearStats(year: number) {
@@ -68,26 +92,158 @@ export default function TaskTracker() {
     };
   }
 
-  function handleAdd() {
+  async function handleAdd() {
     if (!number.trim() || !description.trim() || !date.trim() || !time.trim()) return;
-    setTasks(prev => [
-      ...prev,
-      {
-        id: Math.random().toString(36).slice(2),
-        number,
-        description,
-        date,
-        time,
-      },
-    ]);
+    setAdding(true);
+    setAddError(null);
+    const sheetId = localStorage.getItem("selectedSheetId");
+    if (!sheetId || selectedYear === null || selectedMonth === null) {
+      setAddError("No sheet or month selected");
+      setAdding(false);
+      return;
+    }
+    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+    const uid = generateUID();
+    try {
+      const res = await fetch("/api/sheets/add-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheetId,
+          monthSheetName,
+          number,
+          description,
+          date,
+          time,
+          uid,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to add task");
+      setNumber("");
+      setDescription("");
+      setDate("");
+      setTime("");
+      // Refresh tasks
+      setLoadingTasks(true);
+      setTasksError(null);
+      fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          setTasks(data.tasks || []);
+        })
+        .catch(err => setTasksError(err.message || "Failed to load tasks"))
+        .finally(() => setLoadingTasks(false));
+    } catch (err: any) {
+      setAddError(err.message || "Failed to add task");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function handleDelete(uid: string) {
+    if (!uid) return;
+    setDeletingUid(uid);
+    const sheetId = localStorage.getItem("selectedSheetId");
+    if (!sheetId || selectedYear === null || selectedMonth === null) {
+      setDeletingUid(null);
+      return;
+    }
+    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+    try {
+      const res = await fetch("/api/sheets/delete-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheetId, monthSheetName, uid }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete task");
+      // Refresh tasks
+      setLoadingTasks(true);
+      setTasksError(null);
+      fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          setTasks(data.tasks || []);
+        })
+        .catch(err => setTasksError(err.message || "Failed to load tasks"))
+        .finally(() => setLoadingTasks(false));
+    } catch (err) {
+      // Optionally show error
+    } finally {
+      setDeletingUid(null);
+    }
+  }
+
+  // Handle task card click for editing
+  function handleTaskClick(task: Task) {
+    setEditTask(task);
+    setNumber(task.number);
+    setDescription(task.description);
+    setDate(task.date);
+    setTime(task.time);
+  }
+
+  // Handle update
+  async function handleUpdate() {
+    if (!editTask || !editTask.uid) return;
+    setUpdating(true);
+    setUpdateError(null);
+    const sheetId = localStorage.getItem("selectedSheetId");
+    if (!sheetId || selectedYear === null || selectedMonth === null) {
+      setUpdateError("No sheet or month selected");
+      setUpdating(false);
+      return;
+    }
+    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+    try {
+      const res = await fetch("/api/sheets/update-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheetId,
+          monthSheetName,
+          uid: editTask.uid,
+          number,
+          description,
+          date,
+          time,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to update task");
+      setEditTask(null);
+      setNumber("");
+      setDescription("");
+      setDate("");
+      setTime("");
+      // Refresh tasks
+      setLoadingTasks(true);
+      setTasksError(null);
+      fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          setTasks(data.tasks || []);
+        })
+        .catch(err => setTasksError(err.message || "Failed to load tasks"))
+        .finally(() => setLoadingTasks(false));
+    } catch (err: any) {
+      setUpdateError(err.message || "Failed to update task");
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  function handleCancelEdit() {
+    setEditTask(null);
     setNumber("");
     setDescription("");
     setDate("");
     setTime("");
-  }
-
-  function handleDelete(id: string) {
-    setTasks(prev => prev.filter(t => t.id !== id));
+    setUpdateError(null);
   }
 
   // Filter tasks for selected day
@@ -99,7 +255,29 @@ export default function TaskTracker() {
     });
   }
 
+  // Fetch tasks for selected month and sheet
+  useEffect(() => {
+    const sheetId = localStorage.getItem("selectedSheetId");
+    if (!sheetId || selectedYear === null || selectedMonth === null) return;
+    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+    setLoadingTasks(true);
+    setTasksError(null);
+    fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        setTasks(data.tasks || []);
+      })
+      .catch(err => setTasksError(err.message || "Failed to load tasks"))
+      .finally(() => setLoadingTasks(false));
+  }, [selectedYear, selectedMonth]);
+
   const { data: session } = useSession();
+  // Get selected sheet name from localStorage
+  const [sheetName, setSheetName] = useState<string | null>(null);
+  useEffect(() => {
+    setSheetName(localStorage.getItem("selectedSheetName"));
+  }, []);
 
   // Calendar UI
   return (
@@ -115,7 +293,12 @@ export default function TaskTracker() {
           {session?.user?.image && (
             <img src={session.user.image} alt="avatar" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', background: '#222' }} />
           )}
-          {session?.user?.name && <span style={{ fontSize: 16, fontWeight: 400 }}>{session.user.name}</span>}
+          {session?.user?.name && (
+            <span style={{ fontSize: 16, fontWeight: 400 }}>
+              {session.user.name}
+              {sheetName && <span style={{ color: '#b0b0b0', fontWeight: 400, marginLeft: 8 }}>[{sheetName}]</span>}
+            </span>
+          )}
           <span style={{ fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Sign Out</span>
         </button>
       </header>
@@ -206,7 +389,7 @@ export default function TaskTracker() {
               const stats = getDayStats(selectedYear, selectedMonth, day);
               return (
                 <div
-                  key={day}
+                  key={`${selectedYear}-${selectedMonth}-${day}`}
                   onClick={() => setSelectedDay(day)}
                   style={{
                     background: selectedDay === day
@@ -246,10 +429,16 @@ export default function TaskTracker() {
       </section>
       <section style={{ margin: '0 32px', marginBottom: 24 }}>
         <h2 style={{ fontWeight: 500, fontSize: 26, margin: '32px 0 16px 0', color: '#e0e0e0' }}>Task List</h2>
+        {loadingTasks && <div style={{ color: '#b0b0b0', fontSize: 18, marginTop: 32 }}>Loading tasks...</div>}
+        {tasksError && <div style={{ color: '#e74c3c', fontSize: 18, marginTop: 32 }}>{tasksError}</div>}
         {selectedYear !== null && selectedMonth !== null && selectedDay !== null ? (
           visibleTasks.length > 0 ? (
-            visibleTasks.map(task => (
-              <div key={task.id} style={{
+            visibleTasks.map((task, idx) => {
+              let key: string | undefined = undefined;
+              if (typeof task.uid === 'string' && task.uid.length > 0) key = task.uid;
+              else if (typeof task.id === 'string' && task.id.length > 0) key = task.id;
+              return (
+                <div key={key || ('' + idx)} style={{
                 background: '#393b40',
                 borderRadius: 8,
                 padding: '18px 24px 12px 24px',
@@ -257,8 +446,9 @@ export default function TaskTracker() {
                 border: '1px solid #232428',
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)'
-              }}>
+                boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)',
+                cursor: 'pointer',
+              }} onClick={() => handleTaskClick(task)}>
                 <div style={{ fontSize: 20, fontWeight: 500, color: '#fff', marginBottom: 8 }}>
                   {task.description}
                 </div>
@@ -279,14 +469,24 @@ export default function TaskTracker() {
                     <span>time: <span style={{ color: '#b0b0b0', fontWeight: 500 }}>{task.time}</span></span>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button style={{ background: '#3bb0d6', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      style={{ background: '#3bb0d6', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}
+                      onClick={e => e.stopPropagation()}
+                    >
                       <span role="img" aria-label="calendar">📅</span>
                     </button>
-                    <button onClick={() => handleDelete(task.id)} style={{ background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15 }}>Delete</button>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleDelete(task.uid || ''); }}
+                      disabled={deletingUid === task.uid}
+                      style={{ background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15, opacity: deletingUid === task.uid ? 0.6 : 1 }}
+                    >
+                      {deletingUid === task.uid ? 'Deleting...' : 'Delete'}
+                    </button>
                   </div>
                 </div>
               </div>
-            ))
+              );
+            })
           ) : (
             <div style={{ color: '#b0b0b0', fontSize: 18, marginTop: 32 }}>No tasks for this day.</div>
           )
@@ -299,8 +499,14 @@ export default function TaskTracker() {
         <input placeholder="Task" style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={description} onChange={e => setDescription(e.target.value)} />
         <input type="date" style={{ flex: '0 0 160px', padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={date} onChange={e => setDate(e.target.value)} />
         <input placeholder="Time" style={{ flex: '0 0 120px', padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={time} onChange={e => setTime(e.target.value)} />
-        <button style={{ background: '#44474e', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={handleAdd}>Add</button>
-        <button style={{ background: '#666a70', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={() => { setNumber(""); setDescription(""); setDate(""); setTime(""); }}>Cancel</button>
+        {editTask ? (
+          <button style={{ background: '#3bb0d6', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={handleUpdate} disabled={updating || !number.trim() || !description.trim() || !date.trim() || !time.trim()}>{updating ? 'Updating...' : 'Update'}</button>
+        ) : (
+          <button style={{ background: '#44474e', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={handleAdd} disabled={adding || !number.trim() || !description.trim() || !date.trim() || !time.trim()}>{adding ? 'Adding...' : 'Add'}</button>
+        )}
+        <button style={{ background: '#666a70', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={editTask ? handleCancelEdit : () => { setNumber(""); setDescription(""); setDate(""); setTime(""); }}>{editTask ? 'Cancel' : 'Cancel'}</button>
+        {addError && <span style={{ color: '#e74c3c', marginLeft: 16 }}>{addError}</span>}
+        {updateError && <span style={{ color: '#e74c3c', marginLeft: 16 }}>{updateError}</span>}
       </footer>
     </div>
   );
