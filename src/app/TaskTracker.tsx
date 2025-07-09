@@ -48,6 +48,7 @@ export default function TaskTracker() {
   const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<number>(today.getDate());
+  const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
 
   const handleToday = () => {
     setSelectedYear(today.getFullYear());
@@ -257,9 +258,14 @@ export default function TaskTracker() {
     });
   }
 
+  useEffect(() => {
+    setSelectedSheetId(localStorage.getItem("selectedSheetId"));
+  }, []);
+
   // Fetch tasks for selected month and sheet
   useEffect(() => {
     const sheetId = localStorage.getItem("selectedSheetId");
+    setSelectedSheetId(sheetId);
     if (!sheetId || selectedYear === null || selectedMonth === null) return;
     const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
     setLoadingTasks(true);
@@ -272,7 +278,7 @@ export default function TaskTracker() {
       })
       .catch(err => setTasksError(err.message || "Failed to load tasks"))
       .finally(() => setLoadingTasks(false));
-  }, [selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth, selectedSheetId]);
 
   useEffect(() => {
     function handlePasteShortcut(e: KeyboardEvent) {
@@ -308,8 +314,9 @@ export default function TaskTracker() {
     localStorage.setItem("selectedSheetId", sheet.id);
     localStorage.setItem("selectedSheetName", sheet.name);
     setSheetName(sheet.name);
+    setSelectedSheetId(sheet.id);
     setShowSheetModal(false);
-    router.replace("/tasks"); // reloads with new sheet
+    router.replace("/"); // reloads with new sheet
   }
 
   // Copy task number and description to clipboard

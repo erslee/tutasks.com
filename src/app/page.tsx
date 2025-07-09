@@ -8,11 +8,20 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
+  const [sheetLoading, setSheetLoading] = useState(false);
 
   useEffect(() => {
     setSelectedSheetId(localStorage.getItem("selectedSheetId"));
     setChecked(true);
   }, []);
+
+  // Show spinner when switching sheets
+  useEffect(() => {
+    if (!checked) return;
+    setSheetLoading(true);
+    const timeout = setTimeout(() => setSheetLoading(false), 400);
+    return () => clearTimeout(timeout);
+  }, [selectedSheetId, checked]);
 
   if (status === "loading" || !checked) {
     return <div style={{ color: '#e0e0e0', background: '#232428', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
@@ -32,7 +41,10 @@ export default function HomePage() {
   }
 
   if (selectedSheetId) {
-    return <TaskTracker />;
+    if (sheetLoading) {
+      return <div style={{ color: '#e0e0e0', background: '#232428', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>Loading sheet...</div>;
+    }
+    return <TaskTracker key={selectedSheetId} />;
   }
 
   return (
