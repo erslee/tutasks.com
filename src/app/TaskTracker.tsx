@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRef } from "react";
+import SheetSelector from "./SheetSelector";
+import { useRouter } from "next/navigation";
 
 interface Task {
   uid?: string;
@@ -294,11 +296,21 @@ export default function TaskTracker() {
   }, [selectedYear, selectedMonth, selectedDay]);
 
   const { data: session } = useSession();
-  // Get selected sheet name from localStorage
   const [sheetName, setSheetName] = useState<string | null>(null);
+  const [showSheetModal, setShowSheetModal] = useState(false);
+  const router = useRouter();
+
   useEffect(() => {
     setSheetName(localStorage.getItem("selectedSheetName"));
   }, []);
+
+  function handleSheetChange(sheet: { id: string; name: string }) {
+    localStorage.setItem("selectedSheetId", sheet.id);
+    localStorage.setItem("selectedSheetName", sheet.name);
+    setSheetName(sheet.name);
+    setShowSheetModal(false);
+    router.replace("/tasks"); // reloads with new sheet
+  }
 
   // Copy task number and description to clipboard
   function handleCopy(task: Task) {
@@ -316,7 +328,6 @@ export default function TaskTracker() {
         <div style={{ flex: 1 }} />
         <a href="#" style={{ color: '#b0b0b0', marginRight: 16, textDecoration: 'underline', fontSize: 16 }}>Statistic</a>
         <button
-          onClick={() => signOut()}
           style={{ background: '#44474e', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontWeight: 500, fontSize: 16, display: 'flex', alignItems: 'center', gap: 10 }}
         >
           {session?.user?.image && (
@@ -325,12 +336,36 @@ export default function TaskTracker() {
           {session?.user?.name && (
             <span style={{ fontSize: 16, fontWeight: 400 }}>
               {session.user.name}
-              {sheetName && <span style={{ color: '#b0b0b0', fontWeight: 400, marginLeft: 8 }}>[{sheetName}]</span>}
+              {sheetName && (
+                <span
+                  style={{ color: '#b0b0b0', fontWeight: 400, marginLeft: 8, cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={e => { e.stopPropagation(); setShowSheetModal(true); }}
+                  title="Change sheet"
+                >
+                  [{sheetName}]
+                </span>
+              )}
             </span>
           )}
-          <span style={{ fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Sign Out</span>
+          <span
+            style={{ fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', marginLeft: 16 }}
+            onClick={e => { e.stopPropagation(); signOut(); }}
+          >Sign Out</span>
         </button>
       </header>
+      {showSheetModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(30,30,30,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{ background: '#232428', color: '#fff', borderRadius: 10, padding: 32, maxWidth: 420, boxShadow: '0 2px 16px 0 rgba(0,0,0,0.20)', minWidth: 340 }}>
+            <h3 style={{ marginBottom: 12, color: '#3bb0d6' }}>Choose or Create a Sheet</h3>
+            <SheetSelector onSelectSheet={handleSheetChange} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <button onClick={() => setShowSheetModal(false)} style={{ background: '#444', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', fontWeight: 500, fontSize: 16, cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       <section style={{ background: '#232428', borderRadius: 8, margin: '0 16px', padding: 16, marginBottom: 24 }}>
         {/* Calendar Navigation */}
         <div style={{ display: 'flex', overflowX: 'auto', gap: 16, marginBottom: 8, whiteSpace: 'nowrap' }}>
