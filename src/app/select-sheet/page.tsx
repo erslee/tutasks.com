@@ -1,20 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
-import TaskTracker from "./TaskTracker";
-import SheetSelector from "./SheetSelector";
 import { useSession, signIn, signOut } from "next-auth/react";
+import SheetSelector from "../SheetSelector";
+import { useRouter } from "next/navigation";
 
-export default function HomePage() {
+export default function SelectSheetPage() {
   const { data: session, status } = useSession();
-  const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
-  const [checked, setChecked] = useState(false);
+  const router = useRouter();
 
-  useEffect(() => {
-    setSelectedSheetId(localStorage.getItem("selectedSheetId"));
-    setChecked(true);
-  }, []);
-
-  if (status === "loading" || !checked) {
+  if (status === "loading") {
     return <div style={{ color: '#e0e0e0', background: '#232428', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
   }
 
@@ -31,8 +24,9 @@ export default function HomePage() {
     );
   }
 
-  if (selectedSheetId) {
-    return <TaskTracker />;
+  function handleSheetSelect(sheet: { id: string; name: string }) {
+    localStorage.setItem("selectedSheetId", sheet.id);
+    router.push("/tasks");
   }
 
   return (
@@ -40,9 +34,9 @@ export default function HomePage() {
       <div style={{ background: '#323438', borderRadius: 12, boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)', padding: '48px 40px', minWidth: 400, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 12, color: '#fff' }}>Select or Create a Sheet</h1>
         <p style={{ fontSize: 18, color: '#b0b0b0', marginBottom: 32 }}>Choose where your tasks will be stored</p>
-        <SheetSelector onSelectSheet={() => setSelectedSheetId(localStorage.getItem("selectedSheetId"))} />
+        <SheetSelector onSelectSheet={handleSheetSelect} />
         <button onClick={() => signOut()} style={{ marginTop: 32, background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 6, padding: '10px 28px', fontWeight: 500, fontSize: 16, cursor: 'pointer' }}>Sign Out</button>
       </div>
     </div>
   );
-}
+} 

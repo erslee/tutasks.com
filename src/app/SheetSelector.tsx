@@ -6,7 +6,7 @@ interface Sheet {
   name: string;
 }
 
-export default function SheetSelector({ onSelect }: { onSelect?: (sheet: Sheet) => void }) {
+export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: (sheet: Sheet) => void, onSelectSheet?: (sheet: Sheet) => void }) {
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +32,7 @@ export default function SheetSelector({ onSelect }: { onSelect?: (sheet: Sheet) 
   function handleSelect(sheet: Sheet) {
     setSelected(sheet.id);
     if (onSelect) onSelect(sheet);
+    if (onSelectSheet) onSelectSheet(sheet);
     // Optionally persist selection
     localStorage.setItem("selectedSheetId", sheet.id);
   }
