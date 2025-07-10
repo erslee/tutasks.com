@@ -4,6 +4,11 @@ import { useSession, signOut } from "next-auth/react";
 import { useRef } from "react";
 import SheetSelector from "./SheetSelector";
 import { useRouter } from "next/navigation";
+import HeaderBar from "../components/HeaderBar";
+import SheetModal from "../components/SheetModal";
+import CalendarNav from "../components/CalendarNav";
+import TaskList from "../components/TaskList";
+import TaskForm from "../components/TaskForm";
 
 interface Task {
   uid?: string;
@@ -327,266 +332,97 @@ export default function TaskTracker() {
     }
   }
 
-  // Calendar UI
+  // Handlers for CalendarNav
+  const handleYearSelect = (year: number) => {
+    setSelectedYear(year);
+    setSelectedMonth(0);
+    setSelectedDay(1);
+  };
+  const handleMonthSelect = (month: number) => {
+    setSelectedMonth(month);
+    setSelectedDay(1);
+  };
+  const handleDaySelect = (day: number) => setSelectedDay(day);
+
+  // Handlers for TaskList
+  const handleTaskCopy = (task: Task, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    handleCopy(task);
+    const button = e.target as HTMLButtonElement;
+    button.textContent = 'Copied!';
+    setTimeout(() => {
+      button.textContent = '📋';
+    }, 1000);
+  };
+  const handleTaskDelete = (task: Task, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    handleDelete(task.uid || '');
+  };
+
+  // Handlers for TaskForm
+  const handleFormCancel = () => {
+    if (editTask) handleCancelEdit();
+    else {
+      setNumber(""); setDescription(""); setDate(""); setTime("");
+    }
+  };
+
   return (
     <div style={{ background: '#323438', minHeight: '100vh', color: '#e0e0e0', fontFamily: 'sans-serif', padding: 0 }}>
-      <header style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', fontSize: 32, fontWeight: 600 }}>
-        <span>Tu Tasks</span>
-        <div style={{ flex: 1 }} />
-        <a href="#" style={{ color: '#b0b0b0', marginRight: 16, textDecoration: 'underline', fontSize: 16 }}>Statistic</a>
-        <button
-          style={{ background: '#44474e', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontWeight: 500, fontSize: 16, display: 'flex', alignItems: 'center', gap: 10 }}
-        >
-          {session?.user?.image && (
-            <img src={session.user.image} alt="avatar" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', background: '#222' }} />
-          )}
-          {session?.user?.name && (
-            <span style={{ fontSize: 16, fontWeight: 400 }}>
-              {session.user.name}
-              {sheetName && (
-                <span
-                  style={{ color: '#b0b0b0', fontWeight: 400, marginLeft: 8, cursor: 'pointer', textDecoration: 'underline' }}
-                  onClick={e => { e.stopPropagation(); setShowSheetModal(true); }}
-                  title="Change sheet"
-                >
-                  [{sheetName}]
-                </span>
-              )}
-            </span>
-          )}
-          <span
-            style={{ fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', marginLeft: 16 }}
-            onClick={e => { e.stopPropagation(); signOut(); }}
-          >Sign Out</span>
-        </button>
-      </header>
-      {showSheetModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(30,30,30,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{ background: '#232428', color: '#fff', borderRadius: 10, padding: 32, maxWidth: 420, boxShadow: '0 2px 16px 0 rgba(0,0,0,0.20)', minWidth: 340 }}>
-            <h3 style={{ marginBottom: 12, color: '#3bb0d6' }}>Choose or Create a Sheet</h3>
-            <SheetSelector onSelectSheet={handleSheetChange} />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-              <button onClick={() => setShowSheetModal(false)} style={{ background: '#444', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', fontWeight: 500, fontSize: 16, cursor: 'pointer' }}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-      <section style={{ background: '#232428', borderRadius: 8, margin: '0 16px', padding: 16, marginBottom: 24 }}>
-        {/* Calendar Navigation */}
-        <div style={{ display: 'flex', overflowX: 'auto', gap: 16, marginBottom: 8, whiteSpace: 'nowrap' }}>
-          {years.map(y => {
-            const stats = getYearStats(y);
-            return (
-              <div
-                key={y}
-                onClick={() => { setSelectedYear(y); setSelectedMonth(0); setSelectedDay(1); }}
-                style={{
-                  background: selectedYear === y ? '#44474e' : '#323438',
-                  borderRadius: 6,
-                  padding: '8px 24px',
-                  fontWeight: 600,
-                  fontSize: 18,
-                  color: selectedYear === y ? '#fff' : '#b0b0b0',
-                  cursor: 'pointer',
-                  border: selectedYear === y ? '2px solid #3bb0d6' : 'none',
-                  transition: 'all 0.15s',
-                  minWidth: 90,
-                  textAlign: 'center',
-                  userSelect: 'none',
-                }}
-              >
-                {y} <span style={{ color: '#b0b0b0', fontWeight: 400, fontSize: 15 }}> {stats.count} ({stats.hours})</span>
-              </div>
-            );
-          })}
-          <div
-            onClick={handleToday}
-            style={{
-              background: '#3bb0d6',
-              borderRadius: 6,
-              padding: '8px 24px',
-              fontWeight: 600,
-              fontSize: 18,
-              color: '#fff',
-              cursor: 'pointer',
-              minWidth: 90,
-              textAlign: 'center',
-              userSelect: 'none',
-              marginLeft: 12,
-              boxShadow: '0 2px 8px 0 rgba(59,176,214,0.10)'
-            }}
-          >
-            Today
-          </div>
-        </div>
-        {selectedYear !== null && (
-          <div style={{ display: 'flex', overflowX: 'auto', gap: 8, marginBottom: 8, whiteSpace: 'nowrap' }}>
-            {months.map((m, i) => {
-              const stats = getMonthStats(selectedYear, i);
-              return (
-                <div
-                  key={m}
-                  onClick={() => { setSelectedMonth(i); setSelectedDay(1); }}
-                  style={{
-                    background: selectedMonth === i ? '#44474e' : '#232428',
-                    borderRadius: 4,
-                    padding: '4px 16px',
-                    fontWeight: 500,
-                    fontSize: 15,
-                    color: selectedMonth === i ? '#fff' : '#b0b0b0',
-                    border: selectedMonth === i ? '2px solid #3bb0d6' : '1px solid #44474e',
-                    margin: '0 1px',
-                    cursor: 'pointer',
-                    minWidth: 70,
-                    textAlign: 'left',
-                    userSelect: 'none',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {m}<br /><span style={{ fontSize: 12, color: '#888' }}>{stats.count} ({stats.hours})</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {selectedYear !== null && selectedMonth !== null && (
-          <div style={{ display: 'flex', overflowX: 'auto', gap: 2, whiteSpace: 'nowrap' }}>
-            {Array.from({ length: getDaysInMonth(selectedYear, selectedMonth) }, (_, i) => {
-              const day = i + 1;
-              const dateObj = new Date(selectedYear, selectedMonth, day);
-              const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-              const stats = getDayStats(selectedYear, selectedMonth, day);
-              return (
-                <div
-                  key={`${selectedYear}-${selectedMonth}-${day}`}
-                  onClick={() => setSelectedDay(day)}
-                  style={{
-                    background: selectedDay === day
-                      ? '#44474e'
-                      : isWeekend
-                        ? '#55585e'
-                        : '#323438',
-                    color: selectedDay === day
-                      ? '#fff'
-                      : isWeekend
-                        ? '#b0b0b0'
-                        : '#e0e0e0',
-                    borderRadius: 3,
-                    padding: '4px 8px',
-                    fontWeight: 500,
-                    fontSize: 15,
-                    border: selectedDay === day ? '2px solid #3bb0d6' : '1px solid #44474e',
-                    margin: '0 1px',
-                    cursor: 'pointer',
-                    minWidth: 40,
-                    textAlign: 'left',
-                    userSelect: 'none',
-                    transition: 'all 0.15s',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <span style={{ fontSize: 16, fontWeight: 600 }}>{day}</span>
-                  <span style={{ fontSize: 11, color: '#b0b0b0', marginTop: 2, lineHeight: 1 }}>{stats.count} <span style={{ color: '#888' }}>({stats.hours})</span></span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      <HeaderBar
+        session={session}
+        sheetName={sheetName}
+        onSheetClick={e => { e.stopPropagation(); setShowSheetModal(true); }}
+        onSignOut={e => { e.stopPropagation(); signOut(); }}
+      />
+      <SheetModal
+        open={showSheetModal}
+        onClose={() => setShowSheetModal(false)}
+        onSelectSheet={handleSheetChange}
+      />
+      <CalendarNav
+        years={years}
+        months={months}
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        selectedDay={selectedDay}
+        onYearSelect={handleYearSelect}
+        onMonthSelect={handleMonthSelect}
+        onDaySelect={handleDaySelect}
+        handleToday={handleToday}
+        getYearStats={getYearStats}
+        getMonthStats={getMonthStats}
+        getDayStats={getDayStats}
+      />
       <section style={{ margin: '0 32px', marginBottom: 24 }}>
         <h2 style={{ fontWeight: 500, fontSize: 26, margin: '32px 0 16px 0', color: '#e0e0e0' }}>Task List</h2>
-        {loadingTasks && <div style={{ color: '#b0b0b0', fontSize: 18, marginTop: 32 }}>Loading tasks...</div>}
-        {tasksError && <div style={{ color: '#e74c3c', fontSize: 18, marginTop: 32 }}>{tasksError}</div>}
-        {selectedYear !== null && selectedMonth !== null && selectedDay !== null ? (
-          visibleTasks.length > 0 ? (
-            visibleTasks.map((task, idx) => {
-              let key: string | undefined = undefined;
-              if (typeof task.uid === 'string' && task.uid.length > 0) key = task.uid;
-              else if (typeof task.id === 'string' && task.id.length > 0) key = task.id;
-              return (
-                <div key={key || ('' + idx)} style={{
-                background: '#393b40',
-                borderRadius: 8,
-                padding: '18px 24px 12px 24px',
-                marginBottom: 18,
-                border: '1px solid #232428',
-                display: 'flex',
-                flexDirection: 'column',
-                boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)',
-                cursor: 'pointer',
-              }} onClick={() => handleTaskClick(task)}>
-                <div style={{ fontSize: 20, fontWeight: 500, color: '#fff', marginBottom: 8 }}>
-                  {task.description}
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: 15,
-                  color: '#b0b0b0',
-                  gap: 32,
-                  marginBottom: 0,
-                  marginTop: 8,
-                  justifyContent: 'space-between',
-                  width: '100%'
-                }}>
-                  <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-                    <span>Task Number: <span style={{ color: '#b0b0b0', fontWeight: 500 }}>{task.number} <span role="img" aria-label="calendar">📅</span></span></span>
-                    <span>Created at: <span style={{ color: '#b0b0b0', fontWeight: 500 }}>{task.date}</span></span>
-                    <span>time: <span style={{ color: '#b0b0b0', fontWeight: 500 }}>{task.time}</span></span>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      style={{ background: '#3bb0d6', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}
-                        onClick={e => {
-                          e.stopPropagation();
-                          handleCopy(task);
-                          const button = e.target as HTMLButtonElement;
-                          button.textContent = 'Copied!';
-                          setTimeout(() => {
-                            button.textContent = '📋';
-                          }, 1000);
-                        }}
-                    >
-                      <span role="img" aria-label="copy">📋</span>
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); handleDelete(task.uid || ''); }}
-                      disabled={deletingUid === task.uid}
-                      style={{ background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', fontWeight: 500, fontSize: 15, opacity: deletingUid === task.uid ? 0.6 : 1 }}
-                    >
-                      {deletingUid === task.uid ? 'Deleting...' : 'Delete'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              );
-            })
-          ) : (
-            <div style={{ color: '#b0b0b0', fontSize: 18, marginTop: 32 }}>No tasks for this day.</div>
-          )
-        ) : (
-          <div style={{ color: '#b0b0b0', fontSize: 18, marginTop: 32 }}>Select a day to view tasks.</div>
-        )}
+        <TaskList
+          tasks={visibleTasks}
+          loading={loadingTasks}
+          error={tasksError}
+          onTaskClick={handleTaskClick}
+          onCopy={handleTaskCopy}
+          onDelete={handleTaskDelete}
+          deletingUid={deletingUid}
+        />
       </section>
-      <footer style={{ position: 'fixed', left: 0, bottom: 0, width: '100%', background: '#232428', padding: 16, display: 'flex', gap: 12, alignItems: 'center', zIndex: 10 }}>
-        <input placeholder="Task Number" style={{ flex: '0 0 120px', padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={number} onChange={e => setNumber(e.target.value)} />
-        <input placeholder="Task" style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={description} onChange={e => setDescription(e.target.value)} />
-        <input type="date" style={{ flex: '0 0 160px', padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={date} onChange={e => setDate(e.target.value)} />
-        <input placeholder="Time" style={{ flex: '0 0 120px', padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={time} onChange={e => setTime(e.target.value)} />
-        {editTask ? (
-          <button style={{ background: '#3bb0d6', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={handleUpdate} disabled={updating || !number.trim() || !description.trim() || !date.trim() || !time.trim()}>{updating ? 'Updating...' : 'Update'}</button>
-        ) : (
-          <button style={{ background: '#44474e', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={handleAdd} disabled={adding || !number.trim() || !description.trim() || !date.trim() || !time.trim()}>{adding ? 'Adding...' : 'Add'}</button>
-        )}
-        <button style={{ background: '#666a70', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={editTask ? handleCancelEdit : () => { setNumber(""); setDescription(""); setDate(""); setTime(""); }}>{editTask ? 'Cancel' : 'Cancel'}</button>
-        {addError && <span style={{ color: '#e74c3c', marginLeft: 16 }}>{addError}</span>}
-        {updateError && <span style={{ color: '#e74c3c', marginLeft: 16 }}>{updateError}</span>}
-      </footer>
+      <TaskForm
+        number={number}
+        description={description}
+        date={date}
+        time={time}
+        onNumberChange={e => setNumber(e.target.value)}
+        onDescriptionChange={e => setDescription(e.target.value)}
+        onDateChange={e => setDate(e.target.value)}
+        onTimeChange={e => setTime(e.target.value)}
+        onAdd={handleAdd}
+        onUpdate={handleUpdate}
+        onCancel={handleFormCancel}
+        editMode={!!editTask}
+        loading={adding || updating}
+        addError={addError}
+        updateError={updateError}
+      />
     </div>
   );
 } 
