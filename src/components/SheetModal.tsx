@@ -1,5 +1,5 @@
 import React from "react";
-import SheetSelector from "../app/SheetSelector";
+import SheetSelector from "./SheetSelector";
 
 export default function SheetModal({ open, onClose, onSelectSheet }: {
   open: boolean;

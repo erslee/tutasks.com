@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import TaskTracker from "./TaskTracker";
-import SheetSelector from "./SheetSelector";
+import TaskTracker from "../components/TaskTracker";
+import SheetSelector from "../components/SheetSelector";
 import { useSession, signIn, signOut } from "next-auth/react";
 
 export default function HomePage() {

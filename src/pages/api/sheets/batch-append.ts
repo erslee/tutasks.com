@@ -3,10 +3,6 @@ import { authOptions } from "../auth/[...nextauth]";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { google } from "googleapis";
 
-function generateUID() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -19,12 +15,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  const { sheetId, monthSheetName, number, description, date, time, uid } = req.body;
-  if (!sheetId || !monthSheetName || !number || !description || !date || !time) {
-    return res.status(400).json({ error: "Missing required fields" });
+  const { sheetId, monthSheetName, values } = req.body;
+  if (!sheetId || !monthSheetName || !Array.isArray(values) || values.length === 0) {
+    return res.status(400).json({ error: "Missing required fields or values is empty" });
   }
-
-  const taskUID = uid || generateUID();
 
   try {
     const oauth2Client = new google.auth.OAuth2();
@@ -57,19 +51,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
     }
-    // 3. Append the new task as a row (UID, Task Number, Description, Date, Time)
+    // 3. Batch append all rows
     await sheetsApi.spreadsheets.values.append({
       spreadsheetId: sheetId,
       range: `${monthSheetName}!A:E`,
       valueInputOption: "RAW",
       insertDataOption: "INSERT_ROWS",
       requestBody: {
-        values: [[taskUID, number, description, date, time]],
+        values,
       },
     });
-    res.status(200).json({ success: true, uid: taskUID });
+    res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Google Sheets add-task API error:", error);
-    res.status(500).json({ error: "Failed to add task", details: error instanceof Error ? error.message : error });
+    console.error("Google Sheets batch-append API error:", error);
+    res.status(500).json({ error: "Failed to batch append tasks", details: error instanceof Error ? error.message : error });
   }
 } 

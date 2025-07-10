@@ -1,17 +1,21 @@
 import React from "react";
 import Link from "next/link";
+import { Session } from "next-auth";
 
 export default function HeaderBar({ session, sheetName, onSheetClick, onSignOut }: {
-  session: any;
+  session: Session;
   sheetName: string | null;
   onSheetClick: (e: React.MouseEvent) => void;
   onSignOut: (e: React.MouseEvent) => void;
+  onImportSuccess: () => void;
 }) {
+  console.log("HeaderBar session:", session);
   return (
     <header className="flex items-center px-6 py-4 text-3xl font-semibold">
       <span>Tu Tasks</span>
       <div className="flex-1" />
       <Link href="/statistics" className="text-gray-400 mr-4 underline text-base">Statistics</Link>
+      {/* <CsvImport onImportSuccess={onImportSuccess} /> */}
       <button
         className="bg-[#44474e] text-white border-none rounded-lg px-4 py-2 font-medium text-base flex items-center gap-2"
       >

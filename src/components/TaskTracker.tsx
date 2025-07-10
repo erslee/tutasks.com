@@ -4,11 +4,11 @@ import { useSession, signOut } from "next-auth/react";
 import { useRef } from "react";
 import SheetSelector from "./SheetSelector";
 import { useRouter } from "next/navigation";
-import HeaderBar from "../components/HeaderBar";
-import SheetModal from "../components/SheetModal";
-import CalendarNav from "../components/CalendarNav";
-import TaskList from "../components/TaskList";
-import TaskForm from "../components/TaskForm";
+import HeaderBar from "./HeaderBar";
+import SheetModal from "./SheetModal";
+import CalendarNav from "./CalendarNav";
+import TaskList from "./TaskList";
+import TaskForm from "./TaskForm";
 
 interface Task {
   uid?: string;
@@ -34,6 +34,7 @@ function generateUID() {
 
 export default function TaskTracker() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -46,6 +47,7 @@ export default function TaskTracker() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+
 
   // Today logic
   const today = new Date();
@@ -73,14 +75,14 @@ export default function TaskTracker() {
 
   // Aggregation helpers
   function getYearStats(year: number) {
-    const filtered = tasks.filter(t => new Date(t.date).getFullYear() === year);
+    const filtered = allTasks.filter(t => new Date(t.date).getFullYear() === year);
     return {
       count: filtered.length,
       hours: filtered.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0),
     };
   }
   function getMonthStats(year: number, month: number) {
-    const filtered = tasks.filter(t => {
+    const filtered = allTasks.filter(t => {
       const d = new Date(t.date);
       return d.getFullYear() === year && d.getMonth() === month;
     });
@@ -90,7 +92,7 @@ export default function TaskTracker() {
     };
   }
   function getDayStats(year: number, month: number, day: number) {
-    const filtered = tasks.filter(t => {
+    const filtered = allTasks.filter(t => {
       const d = new Date(t.date);
       return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
     });
@@ -132,17 +134,7 @@ export default function TaskTracker() {
       setDescription("");
       setDate("");
       setTime("");
-      // Refresh tasks
-      setLoadingTasks(true);
-      setTasksError(null);
-      fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) throw new Error(data.error);
-          setTasks(data.tasks || []);
-        })
-        .catch(err => setTasksError(err.message || "Failed to load tasks"))
-        .finally(() => setLoadingTasks(false));
+      fetchAllTasks(); // Refetch all tasks
     } catch (err: any) {
       setAddError(err.message || "Failed to add task");
     } finally {
@@ -167,17 +159,7 @@ export default function TaskTracker() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete task");
-      // Refresh tasks
-      setLoadingTasks(true);
-      setTasksError(null);
-      fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) throw new Error(data.error);
-          setTasks(data.tasks || []);
-        })
-        .catch(err => setTasksError(err.message || "Failed to load tasks"))
-        .finally(() => setLoadingTasks(false));
+      fetchAllTasks(); // Refetch all tasks
     } catch (err) {
       // Optionally show error
     } finally {
@@ -227,17 +209,7 @@ export default function TaskTracker() {
       setDescription("");
       setDate("");
       setTime("");
-      // Refresh tasks
-      setLoadingTasks(true);
-      setTasksError(null);
-      fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) throw new Error(data.error);
-          setTasks(data.tasks || []);
-        })
-        .catch(err => setTasksError(err.message || "Failed to load tasks"))
-        .finally(() => setLoadingTasks(false));
+      fetchAllTasks(); // Refetch all tasks
     } catch (err: any) {
       setUpdateError(err.message || "Failed to update task");
     } finally {
@@ -267,23 +239,40 @@ export default function TaskTracker() {
     setSelectedSheetId(localStorage.getItem("selectedSheetId"));
   }, []);
 
-  // Fetch tasks for selected month and sheet
+  async function fetchAllTasks() {
+    const sheetId = localStorage.getItem("selectedSheetId");
+    if (!sheetId) return;
+
+    setLoadingTasks(true);
+    setTasksError(null);
+
+    try {
+      const res = await fetch(`/api/sheets/get-all-tasks?sheetId=${encodeURIComponent(sheetId)}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setAllTasks(data.tasks || []);
+    } catch (err: any) {
+      setTasksError(err.message || "Failed to load tasks");
+    } finally {
+      setLoadingTasks(false);
+    }
+  }
+
   useEffect(() => {
     const sheetId = localStorage.getItem("selectedSheetId");
     setSelectedSheetId(sheetId);
-    if (!sheetId || selectedYear === null || selectedMonth === null) return;
-    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
-    setLoadingTasks(true);
-    setTasksError(null);
-    fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) throw new Error(data.error);
-        setTasks(data.tasks || []);
-      })
-      .catch(err => setTasksError(err.message || "Failed to load tasks"))
-      .finally(() => setLoadingTasks(false));
-  }, [selectedYear, selectedMonth, selectedSheetId]);
+    if (sheetId) {
+      fetchAllTasks();
+    }
+  }, [selectedSheetId]);
+
+  useEffect(() => {
+    const monthTasks = allTasks.filter(t => {
+      const d = new Date(t.date);
+      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
+    });
+    setTasks(monthTasks);
+  }, [allTasks, selectedYear, selectedMonth]);
 
   useEffect(() => {
     function handlePasteShortcut(e: KeyboardEvent) {
@@ -332,6 +321,25 @@ export default function TaskTracker() {
     }
   }
 
+
+
+  function handleImportSuccess() {
+    // Optionally refresh tasks
+    const sheetId = localStorage.getItem("selectedSheetId");
+    if (!sheetId || selectedYear === null || selectedMonth === null) return;
+    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+    setLoadingTasks(true);
+    setTasksError(null);
+    fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        setTasks(data.tasks || []);
+      })
+      .catch(err => setTasksError(err.message || "Failed to load tasks"))
+      .finally(() => setLoadingTasks(false));
+  }
+
   // Handlers for CalendarNav
   const handleYearSelect = (year: number) => {
     setSelectedYear(year);
@@ -368,12 +376,13 @@ export default function TaskTracker() {
   };
 
   return (
-    <div style={{ background: '#323438', minHeight: '100vh', color: '#e0e0e0', fontFamily: 'sans-serif', padding: 0 }}>
+    <div className="bg-[#323438] min-h-screen text-[#e0e0e0] font-sans p-0">
       <HeaderBar
         session={session}
         sheetName={sheetName}
         onSheetClick={e => { e.stopPropagation(); setShowSheetModal(true); }}
         onSignOut={e => { e.stopPropagation(); signOut(); }}
+        onImportSuccess={handleImportSuccess}
       />
       <SheetModal
         open={showSheetModal}
