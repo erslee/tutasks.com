@@ -1,8 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { useRef } from "react";
-import SheetSelector from "./SheetSelector";
 import { useRouter } from "next/navigation";
 import HeaderBar from "./HeaderBar";
 import SheetModal from "./SheetModal";
@@ -23,10 +21,6 @@ const years = [2023, 2024, 2025];
 const months = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ];
-
-function getDaysInMonth(year: number, monthIndex: number) {
-  return new Date(year, monthIndex + 1, 0).getDate();
-}
 
 function generateUID() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -321,25 +315,6 @@ export default function TaskTracker() {
     }
   }
 
-
-
-  function handleImportSuccess() {
-    // Optionally refresh tasks
-    const sheetId = localStorage.getItem("selectedSheetId");
-    if (!sheetId || selectedYear === null || selectedMonth === null) return;
-    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
-    setLoadingTasks(true);
-    setTasksError(null);
-    fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) throw new Error(data.error);
-        setTasks(data.tasks || []);
-      })
-      .catch(err => setTasksError(err.message || "Failed to load tasks"))
-      .finally(() => setLoadingTasks(false));
-  }
-
   // Handlers for CalendarNav
   const handleYearSelect = (year: number) => {
     setSelectedYear(year);
@@ -382,7 +357,7 @@ export default function TaskTracker() {
         sheetName={sheetName}
         onSheetClick={e => { e.stopPropagation(); setShowSheetModal(true); }}
         onSignOut={e => { e.stopPropagation(); signOut(); }}
-        onImportSuccess={handleImportSuccess}
+        onImportSuccess={fetchAllTasks} // Refresh data after import
       />
       <SheetModal
         open={showSheetModal}

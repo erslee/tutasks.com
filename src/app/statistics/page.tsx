@@ -1,8 +1,19 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
-import { useSession, signOut } from "next-auth/react";
-import CalendarNav from "../../components/CalendarNav";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import HeaderBar from "../../components/HeaderBar";
+import SheetModal from "../../components/SheetModal";
+import CalendarNav from "../../components/CalendarNav";
+import { useRouter } from "next/navigation";
+
+interface Task {
+  uid?: string;
+  id?: string;
+  number: string;
+  description: string;
+  date: string;
+  time: string;
+}
 
 const years = [2023, 2024, 2025];
 const months = [
@@ -10,56 +21,70 @@ const months = [
 ];
 
 export default function StatisticsPage() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+  const [sheetName, setSheetName] = useState<string | null>(null);
+  const [showSheetModal, setShowSheetModal] = useState(false);
+  const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Calendar state (default to today)
   const today = new Date();
   const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth());
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sheetName, setSheetName] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number>(today.getDate());
+
+  async function fetchAllTasks() {
+    const sheetId = localStorage.getItem("selectedSheetId");
+    if (!sheetId) return;
+
+    setLoadingTasks(true);
+    setTasksError(null);
+
+    try {
+      const res = await fetch(`/api/sheets/get-all-tasks?sheetId=${encodeURIComponent(sheetId)}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setAllTasks(data.tasks || []);
+    } catch (err: any) {
+      setTasksError(err.message || "Failed to load tasks");
+    } finally {
+      setLoadingTasks(false);
+    }
+  }
 
   useEffect(() => {
+    setSelectedSheetId(localStorage.getItem("selectedSheetId"));
     setSheetName(localStorage.getItem("selectedSheetName"));
   }, []);
 
   useEffect(() => {
-    const sheetId = localStorage.getItem("selectedSheetId");
-    if (!sheetId) return;
-    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
-    setLoading(true);
-    setError(null);
-    fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) throw new Error(data.error);
-        setTasks(data.tasks || []);
-      })
-      .catch(err => setError(err.message || "Failed to load tasks"))
-      .finally(() => setLoading(false));
-  }, [selectedYear, selectedMonth]);
-
-  // Group tasks by number
-  const grouped = useMemo(() => {
-    const map: Record<string, any[]> = {};
-    for (const t of tasks) {
-      if (!map[t.number]) map[t.number] = [];
-      map[t.number].push(t);
+    if (selectedSheetId) {
+      fetchAllTasks();
     }
-    return map;
-  }, [tasks]);
+  }, [selectedSheetId]);
 
-  const totalTime = useMemo(() => tasks.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0), [tasks]);
+  function handleSheetChange(sheet: { id: string; name: string }) {
+    localStorage.setItem("selectedSheetId", sheet.id);
+    localStorage.setItem("selectedSheetName", sheet.name);
+    setSheetName(sheet.name);
+    setSelectedSheetId(sheet.id);
+    setShowSheetModal(false);
+    router.replace("/statistics"); // reloads with new sheet
+  }
 
+  // Aggregation helpers
   function getYearStats(year: number) {
-    const filtered = tasks.filter(t => new Date(t.date).getFullYear() === year);
+    const filtered = allTasks.filter(t => new Date(t.date).getFullYear() === year);
     return {
       count: filtered.length,
       hours: filtered.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0),
     };
   }
   function getMonthStats(year: number, month: number) {
-    const filtered = tasks.filter(t => {
+    const filtered = allTasks.filter(t => {
       const d = new Date(t.date);
       return d.getFullYear() === year && d.getMonth() === month;
     });
@@ -68,29 +93,78 @@ export default function StatisticsPage() {
       hours: filtered.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0),
     };
   }
-  function getDayStats() { return { count: 0, hours: 0 }; }
+  function getDayStats(year: number, month: number, day: number) {
+    const filtered = allTasks.filter(t => {
+      const d = new Date(t.date);
+      return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
+    });
+    return {
+      count: filtered.length,
+      hours: filtered.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0),
+    };
+  }
+
+  const handleYearSelect = (year: number) => {
+    setSelectedYear(year);
+    setSelectedMonth(0);
+    setSelectedDay(1);
+  };
+  const handleMonthSelect = (month: number) => {
+    setSelectedMonth(month);
+    setSelectedDay(1);
+  };
+  const handleDaySelect = (day: number) => setSelectedDay(day);
+
+  const handleToday = () => {
+    setSelectedYear(today.getFullYear());
+    setSelectedMonth(today.getMonth());
+    setSelectedDay(today.getDate());
+  };
+
+  const grouped = allTasks.reduce((acc: Record<string, Task[]>, task) => {
+
+    const date = new Date(task.date);
+
+    if (date.getFullYear() !== selectedYear || date.getMonth() !== selectedMonth) {
+      return acc; // Skip tasks not in the selected year/month
+    }
+
+    const number = task.number || "0";
+    if (!acc[number]) {
+      acc[number] = [];
+    }
+    acc[number].push(task);
+    return acc;
+  }, {});
+
+  const totalTime = Object.values(grouped).reduce((sum, group) => {
+    return sum + group.reduce((groupSum, task) => groupSum + (parseFloat(task.time) || 0), 0);
+  }, 0).toFixed(2);
 
   return (
-    <div className="bg-[#232428] min-h-screen text-[#e0e0e0] font-sans p-0">
+    <div className="bg-[#323438] min-h-screen text-[#e0e0e0] font-sans p-0">
       <HeaderBar
         session={session}
         sheetName={sheetName}
-        onSheetClick={() => {}}
-        onSignOut={() => signOut()}
+        onSheetClick={e => { e.stopPropagation(); setShowSheetModal(true); }}
+        onSignOut={e => { e.stopPropagation(); router.push("/api/auth/signout"); }}
+        onImportSuccess={fetchAllTasks} // Refresh data after import
+      />
+      <SheetModal
+        open={showSheetModal}
+        onClose={() => setShowSheetModal(false)}
+        onSelectSheet={handleSheetChange}
       />
       <CalendarNav
         years={years}
         months={months}
         selectedYear={selectedYear}
         selectedMonth={selectedMonth}
-        selectedDay={1}
-        onYearSelect={y => { setSelectedYear(y); setSelectedMonth(0); }}
-        onMonthSelect={m => setSelectedMonth(m)}
-        onDaySelect={() => {}}
-        handleToday={() => {
-          setSelectedYear(today.getFullYear());
-          setSelectedMonth(today.getMonth());
-        }}
+        selectedDay={selectedDay}
+        onYearSelect={handleYearSelect}
+        onMonthSelect={handleMonthSelect}
+        onDaySelect={handleDaySelect}
+        handleToday={handleToday}
         getYearStats={getYearStats}
         getMonthStats={getMonthStats}
         getDayStats={getDayStats}
@@ -132,9 +206,9 @@ export default function StatisticsPage() {
             </tr>
           </tfoot>
         </table>
-        {loading && <div className="text-gray-400 text-lg mt-8">Loading...</div>}
-        {error && <div className="text-red-500 text-lg mt-8">{error}</div>}
+        {loadingTasks && <div className="text-gray-400 text-lg mt-8">Loading...</div>}
+        {tasksError && <div className="text-red-500 text-lg mt-8">{tasksError}</div>}
       </div>
     </div>
   );
-} 
+}
