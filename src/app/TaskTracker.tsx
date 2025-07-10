@@ -440,7 +440,7 @@ export default function TaskTracker() {
                     margin: '0 1px',
                     cursor: 'pointer',
                     minWidth: 70,
-                    textAlign: 'center',
+                    textAlign: 'left',
                     userSelect: 'none',
                     transition: 'all 0.15s',
                   }}
@@ -481,7 +481,7 @@ export default function TaskTracker() {
                     margin: '0 1px',
                     cursor: 'pointer',
                     minWidth: 40,
-                    textAlign: 'center',
+                    textAlign: 'left',
                     userSelect: 'none',
                     transition: 'all 0.15s',
                     display: 'flex',

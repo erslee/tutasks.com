@@ -23,6 +23,13 @@ export default function HomePage() {
     return () => clearTimeout(timeout);
   }, [selectedSheetId, checked]);
 
+  // Redirect to login if session has error (token refresh failed)
+  useEffect(() => {
+    if (session?.error === "RefreshAccessTokenError" && session?.user) {
+      signOut({ callbackUrl: "/" });
+    }
+  }, [session]);
+
   if (status === "loading" || !checked) {
     return <div style={{ color: '#e0e0e0', background: '#232428', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
   }
