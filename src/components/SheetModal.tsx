@@ -8,14 +8,12 @@ export default function SheetModal({ open, onClose, onSelectSheet }: {
 }) {
   if (!open) return null;
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(30,30,30,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'
-    }} onClick={onClose}>
-      <div style={{ background: '#232428', color: '#fff', borderRadius: 10, padding: 32, maxWidth: 420, boxShadow: '0 2px 16px 0 rgba(0,0,0,0.20)', minWidth: 340 }} onClick={e => e.stopPropagation()}>
-        <h3 style={{ marginBottom: 12, color: '#3bb0d6' }}>Choose or Create a Sheet</h3>
+    <div className="fixed inset-0 w-screen h-screen bg-black/70 z-[1000] flex items-center justify-center" onClick={onClose}>
+      <div className="bg-[#232428] text-white rounded-xl p-8 max-w-[420px] min-w-[340px] shadow-2xl" onClick={e => e.stopPropagation()}>
+        <h3 className="mb-3 text-[#3bb0d6] text-lg font-semibold">Choose or Create a Sheet</h3>
         <SheetSelector onSelectSheet={onSelectSheet} />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-          <button onClick={onClose} style={{ background: '#444', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', fontWeight: 500, fontSize: 16, cursor: 'pointer' }}>Cancel</button>
+        <div className="flex justify-end mt-4">
+          <button onClick={onClose} className="bg-[#444] text-white border-none rounded-lg px-5 py-2 font-medium text-base cursor-pointer">Cancel</button>
         </div>
       </div>
     </div>

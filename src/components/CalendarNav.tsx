@@ -33,86 +33,56 @@ export default function CalendarNav({
     return new Date(year, monthIndex + 1, 0).getDate();
   }
   return (
-    <section style={{ background: '#232428', borderRadius: 8, margin: '0 16px', padding: 16, marginBottom: 24 }}>
+    <section className="bg-[#232428] rounded-lg mx-4 p-4 mb-6">
       {/* Year Navigation */}
-      <div style={{ display: 'flex', overflowX: 'auto', gap: 16, marginBottom: 8, whiteSpace: 'nowrap' }}>
+      <div className="flex overflow-x-auto gap-4 mb-2 whitespace-nowrap">
         {years.map(y => {
           const stats = getYearStats(y);
           return (
             <div
               key={y}
               onClick={() => onYearSelect(y)}
-              style={{
-                background: selectedYear === y ? '#44474e' : '#323438',
-                borderRadius: 6,
-                padding: '8px 24px',
-                fontWeight: 600,
-                fontSize: 18,
-                color: selectedYear === y ? '#fff' : '#b0b0b0',
-                cursor: 'pointer',
-                border: selectedYear === y ? '2px solid #3bb0d6' : 'none',
-                transition: 'all 0.15s',
-                minWidth: 90,
-                textAlign: 'center',
-                userSelect: 'none',
-              }}
+              className={
+                `rounded-lg px-6 py-2 font-semibold text-lg min-w-[90px] text-center select-none cursor-pointer transition-all ` +
+                (selectedYear === y
+                  ? 'bg-[#44474e] text-white border-2 border-[#3bb0d6]'
+                  : 'bg-[#323438] text-gray-400 border-none')
+              }
             >
-              {y} <span style={{ color: '#b0b0b0', fontWeight: 400, fontSize: 15 }}> {stats.count} ({stats.hours})</span>
+              {y} <span className="text-gray-400 font-normal text-base"> {stats.count} ({stats.hours})</span>
             </div>
           );
         })}
         <div
           onClick={handleToday}
-          style={{
-            background: '#3bb0d6',
-            borderRadius: 6,
-            padding: '8px 24px',
-            fontWeight: 600,
-            fontSize: 18,
-            color: '#fff',
-            cursor: 'pointer',
-            minWidth: 90,
-            textAlign: 'center',
-            userSelect: 'none',
-            marginLeft: 12,
-            boxShadow: '0 2px 8px 0 rgba(59,176,214,0.10)'
-          }}
+          className="bg-[#3bb0d6] rounded-lg px-6 py-2 font-semibold text-lg text-white cursor-pointer min-w-[90px] text-center select-none ml-3 shadow-md"
         >
           Today
         </div>
       </div>
       {/* Month Navigation */}
-      <div style={{ display: 'flex', overflowX: 'auto', gap: 8, marginBottom: 8, whiteSpace: 'nowrap' }}>
+      <div className="flex overflow-x-auto gap-2 mb-2 whitespace-nowrap">
         {months.map((m, i) => {
           const stats = getMonthStats(selectedYear, i);
           return (
             <div
               key={m}
               onClick={() => onMonthSelect(i)}
-              style={{
-                background: selectedMonth === i ? '#44474e' : '#232428',
-                borderRadius: 4,
-                padding: '4px 16px',
-                fontWeight: 500,
-                fontSize: 15,
-                color: selectedMonth === i ? '#fff' : '#b0b0b0',
-                border: selectedMonth === i ? '2px solid #3bb0d6' : '1px solid #44474e',
-                margin: '0 1px',
-                cursor: 'pointer',
-                minWidth: 70,
-                textAlign: 'left',
-                userSelect: 'none',
-                transition: 'all 0.15s',
-              }}
+              className={
+                `rounded-md px-4 py-1 font-medium text-base min-w-[70px] text-left select-none cursor-pointer transition-all border ` +
+                (selectedMonth === i
+                  ? 'bg-[#44474e] text-white border-2 border-[#3bb0d6]'
+                  : 'bg-[#232428] text-gray-400 border border-[#44474e]')
+              }
             >
-              {m}<br /><span style={{ fontSize: 12, color: '#888' }}>{stats.count} ({stats.hours})</span>
+              {m}<br /><span className="text-xs text-gray-500">{stats.count} ({stats.hours})</span>
             </div>
           );
         })}
       </div>
       {/* Day Navigation (optional) */}
       {!hideDay && (
-        <div style={{ display: 'flex', overflowX: 'auto', gap: 2, whiteSpace: 'nowrap' }}>
+        <div className="flex overflow-x-auto gap-1 whitespace-nowrap">
           {Array.from({ length: getDaysInMonth(selectedYear, selectedMonth) }, (_, i) => {
             const day = i + 1;
             const dateObj = new Date(selectedYear, selectedMonth, day);
@@ -122,36 +92,17 @@ export default function CalendarNav({
               <div
                 key={`${selectedYear}-${selectedMonth}-${day}`}
                 onClick={() => onDaySelect(day)}
-                style={{
-                  background: selectedDay === day
-                    ? '#44474e'
+                className={
+                  `rounded px-2 py-1 font-medium text-base min-w-[40px] text-left select-none cursor-pointer transition-all flex flex-col items-center justify-center border ` +
+                  (selectedDay === day
+                    ? 'bg-[#44474e] text-white border-2 border-[#3bb0d6]'
                     : isWeekend
-                      ? '#55585e'
-                      : '#323438',
-                  color: selectedDay === day
-                    ? '#fff'
-                    : isWeekend
-                      ? '#b0b0b0'
-                      : '#e0e0e0',
-                  borderRadius: 3,
-                  padding: '4px 8px',
-                  fontWeight: 500,
-                  fontSize: 15,
-                  border: selectedDay === day ? '2px solid #3bb0d6' : '1px solid #44474e',
-                  margin: '0 1px',
-                  cursor: 'pointer',
-                  minWidth: 40,
-                  textAlign: 'left',
-                  userSelect: 'none',
-                  transition: 'all 0.15s',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                      ? 'bg-[#55585e] text-gray-400 border border-[#44474e]'
+                      : 'bg-[#323438] text-[#e0e0e0] border border-[#44474e]')
+                }
               >
-                <span style={{ fontSize: 16, fontWeight: 600 }}>{day}</span>
-                <span style={{ fontSize: 11, color: '#b0b0b0', marginTop: 2, lineHeight: 1 }}>{stats.count} <span style={{ color: '#888' }}>({stats.hours})</span></span>
+                <span className="text-base font-bold">{day}</span>
+                <span className="text-xs text-gray-400 mt-1 leading-none">{stats.count} <span className="text-gray-500">({stats.hours})</span></span>
               </div>
             );
           })}

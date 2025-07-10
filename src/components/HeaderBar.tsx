@@ -8,22 +8,22 @@ export default function HeaderBar({ session, sheetName, onSheetClick, onSignOut 
   onSignOut: (e: React.MouseEvent) => void;
 }) {
   return (
-    <header style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', fontSize: 32, fontWeight: 600 }}>
-      <span><Link href="/">Tu Tasks</Link></span>
-      <div style={{ flex: 1 }} />
-      <Link href="/statistics" style={{ color: '#b0b0b0', marginRight: 16, textDecoration: 'underline', fontSize: 16 }}>Statistics</Link>
+    <header className="flex items-center px-6 py-4 text-3xl font-semibold">
+      <span>Tu Tasks</span>
+      <div className="flex-1" />
+      <Link href="/statistics" className="text-gray-400 mr-4 underline text-base">Statistics</Link>
       <button
-        style={{ background: '#44474e', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontWeight: 500, fontSize: 16, display: 'flex', alignItems: 'center', gap: 10 }}
+        className="bg-[#44474e] text-white border-none rounded-lg px-4 py-2 font-medium text-base flex items-center gap-2"
       >
         {session?.user?.image && (
-          <img src={session.user.image} alt="avatar" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', background: '#222' }} />
+          <img src={session.user.image} alt="avatar" className="w-7 h-7 rounded-full object-cover bg-[#222]" />
         )}
         {session?.user?.name && (
-          <span style={{ fontSize: 16, fontWeight: 400 }}>
+          <span className="text-base font-normal">
             {session.user.name}
             {sheetName && (
               <span
-                style={{ color: '#b0b0b0', fontWeight: 400, marginLeft: 8, cursor: 'pointer', textDecoration: 'underline' }}
+                className="text-gray-400 font-normal ml-2 cursor-pointer underline"
                 onClick={onSheetClick}
                 title="Change sheet"
               >
@@ -33,7 +33,7 @@ export default function HeaderBar({ session, sheetName, onSheetClick, onSignOut 
           </span>
         )}
         <span
-          style={{ fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', marginLeft: 16 }}
+          className="font-semibold underline cursor-pointer ml-4"
           onClick={onSignOut}
         >Sign Out</span>
       </button>

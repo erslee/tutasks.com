@@ -34,19 +34,19 @@ export default function TaskForm({
   updateError?: string | null;
 }) {
   return (
-    <footer style={{ position: 'fixed', left: 0, bottom: 0, width: '100%', background: '#232428', padding: 16, display: 'flex', gap: 12, alignItems: 'center', zIndex: 10 }}>
-      <input placeholder="Task Number" style={{ flex: '0 0 120px', padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={number} onChange={onNumberChange} />
-      <input placeholder="Task" style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={description} onChange={onDescriptionChange} />
-      <input type="date" style={{ flex: '0 0 160px', padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={date} onChange={onDateChange} />
-      <input placeholder="Time" style={{ flex: '0 0 120px', padding: 8, borderRadius: 4, border: '1px solid #44474e', background: '#323438', color: '#e0e0e0', fontSize: 16 }} value={time} onChange={onTimeChange} />
+    <footer className="fixed left-0 bottom-0 w-full bg-[#232428] p-4 flex gap-3 items-center z-10">
+      <input placeholder="Task Number" className="flex-none w-[120px] p-2 rounded border border-[#44474e] bg-[#323438] text-gray-200 text-base" value={number} onChange={onNumberChange} />
+      <input placeholder="Task" className="flex-1 p-2 rounded border border-[#44474e] bg-[#323438] text-gray-200 text-base" value={description} onChange={onDescriptionChange} />
+      <input type="date" className="flex-none w-[160px] p-2 rounded border border-[#44474e] bg-[#323438] text-gray-200 text-base" value={date} onChange={onDateChange} />
+      <input placeholder="Time" className="flex-none w-[120px] p-2 rounded border border-[#44474e] bg-[#323438] text-gray-200 text-base" value={time} onChange={onTimeChange} />
       {editMode ? (
-        <button style={{ background: '#3bb0d6', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={onUpdate} disabled={loading || !number.trim() || !description.trim() || !date.trim() || !time.trim()}>{loading ? 'Updating...' : 'Update'}</button>
+        <button className="bg-[#3bb0d6] text-white border-none rounded px-6 py-2 font-medium text-base" onClick={onUpdate} disabled={loading || !number.trim() || !description.trim() || !date.trim() || !time.trim()}>{loading ? 'Updating...' : 'Update'}</button>
       ) : (
-        <button style={{ background: '#44474e', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={onAdd} disabled={loading || !number.trim() || !description.trim() || !date.trim() || !time.trim()}>{loading ? 'Adding...' : 'Add'}</button>
+        <button className="bg-[#44474e] text-white border-none rounded px-6 py-2 font-medium text-base" onClick={onAdd} disabled={loading || !number.trim() || !description.trim() || !date.trim() || !time.trim()}>{loading ? 'Adding...' : 'Add'}</button>
       )}
-      <button style={{ background: '#666a70', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 24px', fontWeight: 500, fontSize: 16 }} onClick={onCancel}>{editMode ? 'Cancel' : 'Cancel'}</button>
-      {addError && <span style={{ color: '#e74c3c', marginLeft: 16 }}>{addError}</span>}
-      {updateError && <span style={{ color: '#e74c3c', marginLeft: 16 }}>{updateError}</span>}
+      <button className="bg-[#666a70] text-white border-none rounded px-6 py-2 font-medium text-base" onClick={onCancel}>{editMode ? 'Cancel' : 'Cancel'}</button>
+      {addError && <span className="text-red-500 ml-4">{addError}</span>}
+      {updateError && <span className="text-red-500 ml-4">{updateError}</span>}
     </footer>
   );
 } 

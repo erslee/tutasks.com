@@ -71,7 +71,7 @@ export default function StatisticsPage() {
   function getDayStats() { return { count: 0, hours: 0 }; }
 
   return (
-    <div style={{ background: '#232428', minHeight: '100vh', color: '#e0e0e0', fontFamily: 'sans-serif', padding: 0 }}>
+    <div className="bg-[#232428] min-h-screen text-[#e0e0e0] font-sans p-0">
       <HeaderBar
         session={session}
         sheetName={sheetName}
@@ -96,28 +96,28 @@ export default function StatisticsPage() {
         getDayStats={getDayStats}
         hideDay={true}
       />
-      <h2 style={{ fontWeight: 500, fontSize: 28, margin: '32px 0 16px 32px', color: '#e0e0e0' }}>Statistics</h2>
-      <div style={{ margin: '0 16px', background: '#18191c', borderRadius: 8, padding: 24, boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', color: '#e0e0e0' }}>
+      <h2 className="font-medium text-2xl mt-8 mb-4 ml-8 text-[#e0e0e0]">Statistics</h2>
+      <div className="mx-4 bg-[#18191c] rounded-lg p-6 shadow-xl">
+        <table className="w-full border-collapse text-[#e0e0e0]">
           <thead>
-            <tr style={{ borderBottom: '2px solid #444' }}>
-              <th style={{ textAlign: 'left', padding: 8 }}>Task</th>
-              <th style={{ textAlign: 'left', padding: 8 }}>Sub Tasks</th>
-              <th style={{ textAlign: 'left', padding: 8 }}>Date</th>
-              <th style={{ textAlign: 'right', padding: 8 }}>Total Time</th>
+            <tr className="border-b-2 border-[#444]">
+              <th className="text-left p-2">Task</th>
+              <th className="text-left p-2">Sub Tasks</th>
+              <th className="text-left p-2">Date</th>
+              <th className="text-right p-2">Total Time</th>
             </tr>
           </thead>
           <tbody>
             {Object.entries(grouped).map(([number, group]) => (
               group.map((task, idx) => (
-                <tr key={task.uid || task.id || idx} style={{ borderBottom: '1px solid #333' }}>
+                <tr key={task.uid || task.id || idx} className="border-b border-[#333]">
                   {idx === 0 && (
-                    <td rowSpan={group.length} style={{ verticalAlign: 'top', fontWeight: 600, padding: 8 }}>{number} <span role="img" aria-label="calendar">📋</span></td>
+                    <td rowSpan={group.length} className="align-top font-semibold p-2">{number} <span role="img" aria-label="calendar">📋</span></td>
                   )}
-                  <td style={{ padding: 8 }}>{task.description || '-'}</td>
-                  <td style={{ padding: 8 }}>{task.date}</td>
+                  <td className="p-2">{task.description || '-'}</td>
+                  <td className="p-2">{task.date}</td>
                   {idx === 0 && (
-                    <td rowSpan={group.length} style={{ textAlign: 'right', fontWeight: 600, padding: 8 }}>
+                    <td rowSpan={group.length} className="text-right font-semibold p-2">
                       {group.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0)}
                     </td>
                   )}
@@ -127,13 +127,13 @@ export default function StatisticsPage() {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={3} style={{ textAlign: 'right', fontWeight: 700, padding: 8 }}>Total Time</td>
-              <td style={{ textAlign: 'right', fontWeight: 700, padding: 8 }}>{totalTime}</td>
+              <td colSpan={3} className="text-right font-bold p-2">Total Time</td>
+              <td className="text-right font-bold p-2">{totalTime}</td>
             </tr>
           </tfoot>
         </table>
-        {loading && <div style={{ color: '#b0b0b0', fontSize: 18, marginTop: 32 }}>Loading...</div>}
-        {error && <div style={{ color: '#e74c3c', fontSize: 18, marginTop: 32 }}>{error}</div>}
+        {loading && <div className="text-gray-400 text-lg mt-8">Loading...</div>}
+        {error && <div className="text-red-500 text-lg mt-8">{error}</div>}
       </div>
     </div>
   );
