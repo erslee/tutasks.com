@@ -2,26 +2,18 @@
 import { useEffect, useState } from "react";
 import TaskTracker from "../components/TaskTracker";
 import SheetSelector from "../components/SheetSelector";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import AuthPrompt from '@/components/AuthPrompt';
 
 export default function HomePage() {
   const { data: session, status } = useSession();
   const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
-  const [sheetLoading, setSheetLoading] = useState(false);
 
   useEffect(() => {
     setSelectedSheetId(localStorage.getItem("selectedSheetId"));
     setChecked(true);
   }, []);
-
-  // Show spinner when switching sheets
-  useEffect(() => {
-    if (!checked) return;
-    setSheetLoading(true);
-    const timeout = setTimeout(() => setSheetLoading(false), 400);
-    return () => clearTimeout(timeout);
-  }, [selectedSheetId, checked]);
 
   // Redirect to login if session has error (token refresh failed)
   useEffect(() => {
@@ -35,34 +27,10 @@ export default function HomePage() {
   }
 
   if (!session) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
-        <h1 className="text-5xl font-extrabold mb-4 text-blue-400">TuTasks</h1>
-        <p className="text-xl text-gray-300 text-center max-w-2xl mb-8">
-          TuTasks is a powerful and intuitive task management application that seamlessly integrates with Google Sheets. Organize your tasks, track your progress, and collaborate with ease, all powered by the flexibility of your own spreadsheets.
-        </p>
-        <button
-          onClick={() => signIn("google")}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 mb-6"
-        >
-          Sign in with Google to Get Started
-        </button>
-        <a
-          href="https://github.com/erslee/tutasks.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-400 hover:text-blue-300 text-lg font-medium transition duration-300 ease-in-out"
-        >
-          Explore on GitHub
-        </a>
-      </div>
-    );
+    return <AuthPrompt />;
   }
 
   if (selectedSheetId) {
-    if (sheetLoading) {
-      return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-300 text-2xl">Loading sheet...</div>;
-    }
     return <TaskTracker key={selectedSheetId} />;
   }
 

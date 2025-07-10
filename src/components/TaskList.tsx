@@ -26,7 +26,32 @@ export default function TaskList({
   onDelete: (task: Task, e: React.MouseEvent<HTMLButtonElement>) => void;
   deletingUid: string | null;
 }) {
-  if (loading) return <div className="text-gray-400 text-lg mt-8">Loading tasks...</div>;
+  const TaskPlaceholder = () => (
+  <div className="bg-[#393b40] rounded-lg px-6 pt-5 pb-3 mb-5 border border-[#232428] flex flex-col shadow-md animate-pulse">
+    <div className="h-6 bg-gray-500 rounded w-3/4 mb-4"></div>
+    <div className="flex items-center text-base text-gray-400 gap-8 mt-2 mb-0 justify-between w-full">
+      <div className="flex gap-8 items-center w-full">
+        <div className="h-4 bg-gray-500 rounded w-1/4"></div>
+        <div className="h-4 bg-gray-500 rounded w-1/4"></div>
+        <div className="h-4 bg-gray-500 rounded w-1/4"></div>
+      </div>
+      <div className="flex gap-2">
+        <div className="h-8 w-16 bg-gray-500 rounded"></div>
+        <div className="h-8 w-20 bg-gray-500 rounded"></div>
+      </div>
+    </div>
+  </div>
+);
+
+if (loading) {
+  return (
+    <div className="mt-8">
+      <TaskPlaceholder />
+      <TaskPlaceholder />
+      <TaskPlaceholder />
+    </div>
+  );
+}
   if (error) return <div className="text-red-500 text-lg mt-8">{error}</div>;
   if (!tasks.length) return <div className="text-gray-400 text-lg mt-8">No tasks for this day.</div>;
   return (

@@ -17,7 +17,17 @@ interface Task {
   time: string;
 }
 
-const years = [2023, 2024, 2025];
+// Get unique years from tasks data plus current year
+const getYears = (tasks: Task[]) => {
+  const yearsWithData = tasks.map(t => new Date(t.date).getFullYear());
+  return Array.from(
+    new Set([
+      ...yearsWithData,
+      new Date().getFullYear()
+    ])
+  ).sort((a, b) => a - b); // Sort descending
+};
+
 const months = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ];
@@ -66,6 +76,8 @@ export default function TaskTracker() {
       setDate(`${yyyy}-${mm}-${dd}`);
     }
   }, [selectedYear, selectedMonth, selectedDay]);
+
+  const years = getYears(allTasks);
 
   // Aggregation helpers
   function getYearStats(year: number) {

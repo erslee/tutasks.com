@@ -15,7 +15,16 @@ interface Task {
   time: string;
 }
 
-const years = [2023, 2024, 2025];
+const getYears = (tasks: Task[]) => {
+  const yearsWithData = tasks.map(t => new Date(t.date).getFullYear());
+  return Array.from(
+    new Set([
+      ...yearsWithData,
+      new Date().getFullYear()
+    ])
+  ).sort((a, b) => a - b); // Sort descending
+};
+
 const months = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ];
@@ -23,6 +32,7 @@ const months = [
 export default function StatisticsPage() {
   const { data: session } = useSession();
   const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const years = getYears(allTasks);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [sheetName, setSheetName] = useState<string | null>(null);
@@ -206,7 +216,15 @@ export default function StatisticsPage() {
             </tr>
           </tfoot>
         </table>
-        {loadingTasks && <div className="text-gray-400 text-lg mt-8">Loading...</div>}
+        {loadingTasks && (
+          <div className="mt-8">
+            <div className="animate-pulse">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-10 bg-[#393b40] rounded-lg mb-3"></div>
+              ))}
+            </div>
+          </div>
+        )}
         {tasksError && <div className="text-red-500 text-lg mt-8">{tasksError}</div>}
       </div>
     </div>
