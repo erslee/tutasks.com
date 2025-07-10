@@ -7,7 +7,7 @@ function generateUID() {
 
 export default function CsvImport({ onImportSuccess }: { onImportSuccess: () => void }) {
   const [showImportModal, setShowImportModal] = useState(false);
-  const [csvPreview, setCsvPreview] = useState<any[]>([]);
+  const [csvPreview, setCsvPreview] = useState<Record<string, string>[]>([]);
   const [csvError, setCsvError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,7 +38,7 @@ export default function CsvImport({ onImportSuccess }: { onImportSuccess: () => 
       };
       const rows = lines.slice(1).map(line => {
         const values = line.split(",");
-        const obj: any = {};
+        const obj: Record<string, string> = {};
         headers.forEach((h, i) => {
           const key = headerMap[h] || h;
           obj[key] = values[i]?.trim() ?? "";
@@ -57,7 +57,7 @@ export default function CsvImport({ onImportSuccess }: { onImportSuccess: () => 
       setCsvError("No sheet selected");
       return;
     }
-    const monthGroups: Record<string, any[]> = {};
+    const monthGroups: Record<string, Record<string, string>[]> = {};
     for (const row of csvPreview) {
       const dateObj = new Date(row.date);
       const year = dateObj.getFullYear();
@@ -84,8 +84,8 @@ export default function CsvImport({ onImportSuccess }: { onImportSuccess: () => 
       setShowImportModal(false);
       setCsvPreview([]);
       onImportSuccess();
-    } catch (err: any) {
-      setCsvError(err.message || "Failed to import some tasks");
+    } catch (err: unknown) {
+      setCsvError(err instanceof Error ? err.message : String(err) || "Failed to import some tasks");
     }
   }
 

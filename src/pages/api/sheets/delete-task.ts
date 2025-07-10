@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { google } from "googleapis";
+import { google, sheets_v4 } from "googleapis";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -61,9 +61,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 // Helper to get the sheetId (number) by sheet/tab name
-async function getSheetIdByName(sheets: any, spreadsheetId: string, sheetName: string): Promise<number> {
+async function getSheetIdByName(sheets: sheets_v4.Sheets, spreadsheetId: string, sheetName: string) {
   const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
-  const sheet = (spreadsheet.data.sheets || []).find((s: any) => s.properties?.title === sheetName);
+  const sheet = (spreadsheet.data.sheets || []).find((s) => s.properties?.title === sheetName);
   if (!sheet) throw new Error("Sheet not found");
-  return sheet.properties.sheetId;
+  return sheet?.properties?.sheetId;
 } 

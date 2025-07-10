@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { Account } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { Session, User } from "next-auth";
 import { JWT } from "next-auth/jwt";
@@ -23,7 +23,8 @@ async function refreshAccessToken(token: JWT) {
       accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error("Error refreshing access token:", error);
     return { ...token, error: "RefreshAccessTokenError" };
   }
 }
@@ -51,16 +52,16 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async session({ session, token, user }: { session: Session; token: JWT; user: User }) {
+    async session({ session, token }: { session: Session; token: JWT; user: User }) {
       session.accessToken = token.accessToken as string | undefined;
       session.error = token.error as string | undefined;
       return session;
     },
-    async jwt({ token, account }: { token: JWT; account?: any }) {
+    async jwt({ token, account }: { token: JWT; account: Account | null }) {
       // Initial sign in
       if (account) {
         token.accessToken = account.access_token;
-        token.accessTokenExpires = Date.now() + account.expires_in * 1000;
+        token.accessTokenExpires = Date.now() + parseInt(account.expires_in as string) * 1000;
         token.refreshToken = account.refresh_token;
         return token;
       }
@@ -76,4 +77,4 @@ export const authOptions = {
   },
 };
 
-export default NextAuth(authOptions); 
+export default NextAuth(authOptions);

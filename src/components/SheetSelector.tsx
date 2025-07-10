@@ -17,7 +17,7 @@ export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: 
   const [sheetName, setSheetName] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [pendingSheet, setPendingSheet] = useState<Sheet | null>(null);
-  const [checking, setChecking] = useState(false);
+  const [, setChecking] = useState(false);
   const [identifierError, setIdentifierError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,8 +54,8 @@ export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: 
       } else {
         setIdentifierError(data.error || "Failed to check sheet");
       }
-    } catch (err: any) {
-      setIdentifierError(err.message || "Failed to check sheet");
+    } catch (err: unknown) {
+      setIdentifierError(err instanceof Error ? err.message : String(err) || "Failed to check sheet");
     } finally {
       setChecking(false);
     }
@@ -98,8 +98,8 @@ export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: 
       setSheets(prev => [...prev, newSheet]);
       handleSelect(newSheet);
       setSheetName("");
-    } catch (err: any) {
-      setCreateError(err.message || "Failed to create sheet");
+    } catch (err: unknown) {
+      setCreateError(err instanceof Error ? err.message : String(err) || "Failed to create sheet");
     } finally {
       setCreating(false);
     }
