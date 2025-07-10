@@ -379,8 +379,8 @@ export default function TaskTracker() {
         getMonthStats={getMonthStats}
         getDayStats={getDayStats}
       />
-      <section style={{ margin: '0 32px', marginBottom: 24 }}>
-        <h2 style={{ fontWeight: 500, fontSize: 26, margin: '32px 0 16px 0', color: '#e0e0e0' }}>Task List</h2>
+      <section className="mx-8 mb-6">
+        <h2 className="font-medium text-2xl mt-8 mb-4 text-gray-200">Task List</h2>
         <TaskList
           tasks={visibleTasks}
           loading={loadingTasks}

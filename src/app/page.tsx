@@ -31,36 +31,50 @@ export default function HomePage() {
   }, [session]);
 
   if (status === "loading" || !checked) {
-    return <div style={{ color: '#e0e0e0', background: '#232428', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-300 text-2xl">Loading...</div>;
   }
 
   if (!session) {
     return (
-      <div style={{ color: '#e0e0e0', background: '#232428', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <h1 style={{ fontSize: 36, fontWeight: 700, marginBottom: 24 }}>Welcome to Tu Tasks</h1>
-        <p style={{ fontSize: 18, marginBottom: 32 }}>Sign in with Google to get started</p>
-        <button onClick={() => signIn("google")}
-          style={{ background: '#3bb0d6', color: '#fff', border: 'none', borderRadius: 6, padding: '12px 32px', fontWeight: 600, fontSize: 20, cursor: 'pointer', boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)' }}>
-          Sign in with Google
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
+        <h1 className="text-5xl font-extrabold mb-4 text-blue-400">TuTasks</h1>
+        <p className="text-xl text-gray-300 text-center max-w-2xl mb-8">
+          TuTasks is a powerful and intuitive task management application that seamlessly integrates with Google Sheets. Organize your tasks, track your progress, and collaborate with ease, all powered by the flexibility of your own spreadsheets.
+        </p>
+        <button
+          onClick={() => signIn("google")}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105 mb-6"
+        >
+          Sign in with Google to Get Started
         </button>
+        <a
+          href="https://github.com/erslee/tutasks.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 hover:text-blue-300 text-lg font-medium transition duration-300 ease-in-out"
+        >
+          Explore on GitHub
+        </a>
       </div>
     );
   }
 
   if (selectedSheetId) {
     if (sheetLoading) {
-      return <div style={{ color: '#e0e0e0', background: '#232428', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>Loading sheet...</div>;
+      return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-300 text-2xl">Loading sheet...</div>;
     }
     return <TaskTracker key={selectedSheetId} />;
   }
 
   return (
-    <div style={{ background: '#232428', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: '#323438', borderRadius: 12, boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)', padding: '48px 40px', minWidth: 400, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 12, color: '#fff' }}>Select or Create a Sheet</h1>
-        <p style={{ fontSize: 18, color: '#b0b0b0', marginBottom: 32 }}>Choose where your tasks will be stored</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 p-4">
+      <div className="bg-gray-800 rounded-xl shadow-2xl p-12 min-w-[400px] flex flex-col items-center">
+        <h1 className="text-4xl font-bold mb-3 text-white">Select or Create a Sheet</h1>
+        <p className="text-lg text-gray-400 mb-8 text-center">Choose where your tasks will be stored</p>
         <SheetSelector onSelectSheet={() => setSelectedSheetId(localStorage.getItem("selectedSheetId"))} />
-        <button onClick={() => signOut()} style={{ marginTop: 32, background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 6, padding: '10px 28px', fontWeight: 500, fontSize: 16, cursor: 'pointer' }}>Sign Out</button>
+        <button onClick={() => signOut()} className="mt-8 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">
+          Sign Out
+        </button>
       </div>
     </div>
   );
