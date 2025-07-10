@@ -68,8 +68,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
     res.status(200).json({ success: true, uid: taskUID });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Google Sheets add-task API error:", error);
-    res.status(500).json({ error: "Failed to add task", details: error instanceof Error ? error.message : error });
+    res.status(500).json({ error: "Failed to add task", details: error instanceof Error ? error.message : String(error) });
   }
 } 

@@ -62,8 +62,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
     res.status(200).json({ success: true });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Google Sheets batch-append API error:", error);
-    res.status(500).json({ error: "Failed to batch append tasks", details: error instanceof Error ? error.message : error });
+    res.status(500).json({ error: "Failed to batch append tasks", details: error instanceof Error ? error.message : String(error) });
   }
 } 

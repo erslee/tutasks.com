@@ -41,8 +41,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
     res.status(200).json({ id: spreadsheet.spreadsheetId, name: spreadsheet.properties?.title });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Google Sheets Create API error:", error);
-    res.status(500).json({ error: "Failed to create sheet", details: error instanceof Error ? error.message : error });
+    res.status(500).json({ error: "Failed to create sheet", details: error instanceof Error ? error.message : String(error) });
   }
 } 

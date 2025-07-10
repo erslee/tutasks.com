@@ -129,8 +129,8 @@ export default function TaskTracker() {
       setDate("");
       setTime("");
       fetchAllTasks(); // Refetch all tasks
-    } catch (err: any) {
-      setAddError(err.message || "Failed to add task");
+    } catch (err: unknown) {
+      setAddError(err instanceof Error ? err.message : String(err));
     } finally {
       setAdding(false);
     }
@@ -154,8 +154,9 @@ export default function TaskTracker() {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete task");
       fetchAllTasks(); // Refetch all tasks
-    } catch (err) {
+    } catch (err: unknown) {
       // Optionally show error
+      console.error("Delete task error:", err);
     } finally {
       setDeletingUid(null);
     }
@@ -204,8 +205,8 @@ export default function TaskTracker() {
       setDate("");
       setTime("");
       fetchAllTasks(); // Refetch all tasks
-    } catch (err: any) {
-      setUpdateError(err.message || "Failed to update task");
+    } catch (err: unknown) {
+      setUpdateError(err instanceof Error ? err.message : String(err));
     } finally {
       setUpdating(false);
     }
@@ -245,8 +246,8 @@ export default function TaskTracker() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setAllTasks(data.tasks || []);
-    } catch (err: any) {
-      setTasksError(err.message || "Failed to load tasks");
+    } catch (err: unknown) {
+      setTasksError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoadingTasks(false);
     }

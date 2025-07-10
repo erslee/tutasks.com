@@ -33,8 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else {
       res.status(200).json({ hasIdentifier: false });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Google Sheets check-identifier API error:", error);
-    res.status(500).json({ error: "Failed to check identifier", details: error instanceof Error ? error.message : error });
+    res.status(500).json({ error: "Failed to check identifier", details: error instanceof Error ? error.message : String(error) });
   }
 } 

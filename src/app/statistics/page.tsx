@@ -48,8 +48,8 @@ export default function StatisticsPage() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setAllTasks(data.tasks || []);
-    } catch (err: any) {
-      setTasksError(err.message || "Failed to load tasks");
+    } catch (err: unknown) {
+      setTasksError(err instanceof Error ? err.message : "Failed to load tasks");
     } finally {
       setLoadingTasks(false);
     }

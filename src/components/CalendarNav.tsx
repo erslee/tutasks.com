@@ -98,7 +98,8 @@ export default function CalendarNav({
                     ? 'bg-[#44474e] text-white border-2 border-[#3bb0d6]'
                     : isWeekend
                       ? 'bg-[#55585e] text-gray-400 border border-[#44474e]'
-                      : 'bg-[#323438] text-[#e0e0e0] border border-[#44474e]')
+                      : 'bg-[#323438] text-[#e0e0e0] border border-[#44474e]') +
+                  (new Date().getFullYear() === selectedYear && new Date().getMonth() === selectedMonth && new Date().getDate() === day ? ' !border-yellow-500' : '')
                 }
               >
                 <span className="text-base font-bold">{day}</span>

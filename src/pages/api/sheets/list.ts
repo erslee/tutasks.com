@@ -21,8 +21,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     const sheets = response.data.files || [];
     res.status(200).json({ sheets });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Google Sheets API error:", error);
-    res.status(500).json({ error: "Failed to fetch sheets", details: error instanceof Error ? error.message : error });
+    res.status(500).json({ error: "Failed to fetch sheets", details: error instanceof Error ? error.message : String(error) });
   }
 } 
