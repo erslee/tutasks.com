@@ -1,4 +1,5 @@
 import React from "react";
+import CopyButton from "./CopyButton";
 
 interface Task {
   uid?: string;
@@ -22,7 +23,7 @@ export default function TaskList({
   loading: boolean;
   error: string | null;
   onTaskClick: (task: Task) => void;
-  onCopy: (task: Task, e: React.MouseEvent<HTMLButtonElement>) => void;
+  onCopy?: (task: Task, e: React.MouseEvent<HTMLButtonElement>) => void;
   onDelete: (task: Task, e: React.MouseEvent<HTMLButtonElement>) => void;
   deletingUid: string | null;
 }) {
@@ -73,12 +74,11 @@ if (loading) {
                 <span>time: <span className="text-gray-400 font-medium">{task.time}</span></span>
               </div>
               <div className="flex gap-2">
-                <button
-                  className="bg-[#3bb0d6] text-white border-none rounded px-4 py-1 font-medium text-base flex items-center gap-1"
-                  onClick={e => onCopy(task, e)}
-                >
-                  <span role="img" aria-label="copy">📋</span>
-                </button>
+                <CopyButton 
+                  task={task} 
+                  onClick={onCopy ? (e) => onCopy(task, e) : undefined}
+                  size="lg"
+                />
                 <button
                   onClick={e => onDelete(task, e)}
                   disabled={deletingUid === task.uid}

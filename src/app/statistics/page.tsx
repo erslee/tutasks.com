@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import HeaderBar from "../../components/HeaderBar";
 import SheetModal from "../../components/SheetModal";
 import CalendarNav from "../../components/CalendarNav";
+import CopyButton from "../../components/CopyButton";
 import { useRouter } from "next/navigation";
 
 interface Task {
@@ -131,6 +132,7 @@ export default function StatisticsPage() {
     setSelectedDay(today.getDate());
   };
 
+
   const grouped = allTasks.reduce((acc: Record<string, Task[]>, task) => {
 
     const date = new Date(task.date);
@@ -189,6 +191,7 @@ export default function StatisticsPage() {
               <th className="text-left p-2">Sub Tasks</th>
               <th className="text-left p-2">Date</th>
               <th className="text-right p-2">Total Time</th>
+              <th className="text-center p-2">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -196,7 +199,7 @@ export default function StatisticsPage() {
               group.map((task, idx) => (
                 <tr key={task.uid || task.id || idx} className="border-b border-[#333]">
                   {idx === 0 && (
-                    <td rowSpan={group.length} className="align-top font-semibold p-2">{number} <span role="img" aria-label="calendar">📋</span></td>
+                    <td rowSpan={group.length} className="align-top font-semibold p-2">{number}</td>
                   )}
                   <td className="p-2">{task.description || '-'}</td>
                   <td className="p-2">{task.date}</td>
@@ -205,13 +208,16 @@ export default function StatisticsPage() {
                       {group.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0)}
                     </td>
                   )}
+                  <td className="text-center p-2">
+                    <CopyButton task={task} size="sm" />
+                  </td>
                 </tr>
               ))
             ))}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={3} className="text-right font-bold p-2">Total Time</td>
+              <td colSpan={4} className="text-right font-bold p-2">Total Time</td>
               <td className="text-right font-bold p-2">{totalTime}</td>
             </tr>
           </tfoot>

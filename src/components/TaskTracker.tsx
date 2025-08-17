@@ -320,13 +320,6 @@ export default function TaskTracker() {
     router.replace("/"); // reloads with new sheet
   }
 
-  // Copy task number and description to clipboard
-  function handleCopy(task: Task) {
-    if (typeof window !== 'undefined' && navigator.clipboard) {
-      const text = `${task.number} - ${task.description}`;
-      navigator.clipboard.writeText(text);
-    }
-  }
 
   // Handlers for CalendarNav
   const handleYearSelect = (year: number) => {
@@ -341,15 +334,6 @@ export default function TaskTracker() {
   const handleDaySelect = (day: number) => setSelectedDay(day);
 
   // Handlers for TaskList
-  const handleTaskCopy = (task: Task, e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    handleCopy(task);
-    const button = e.target as HTMLButtonElement;
-    button.textContent = 'Copied!';
-    setTimeout(() => {
-      button.textContent = '📋';
-    }, 1000);
-  };
   const handleTaskDelete = (task: Task, e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     handleDelete(task.uid || '');
@@ -398,7 +382,6 @@ export default function TaskTracker() {
           loading={loadingTasks}
           error={tasksError}
           onTaskClick={handleTaskClick}
-          onCopy={handleTaskCopy}
           onDelete={handleTaskDelete}
           deletingUid={deletingUid}
         />
