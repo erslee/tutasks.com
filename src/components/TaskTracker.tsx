@@ -1,46 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import HeaderBar from "./HeaderBar";
-import SheetModal from "./SheetModal";
-import CalendarNav from "./CalendarNav";
+import PageLayout from "./PageLayout";
 import TaskList from "./TaskList";
 import TaskForm from "./TaskForm";
-
-interface Task {
-  uid?: string;
-  id?: string;
-  number: string;
-  description: string;
-  date: string;
-  time: string;
-}
-
-// Get unique years from tasks data plus current year
-const getYears = (tasks: Task[]) => {
-  const yearsWithData = tasks.map(t => new Date(t.date).getFullYear());
-  return Array.from(
-    new Set([
-      ...yearsWithData,
-      new Date().getFullYear()
-    ])
-  ).sort((a, b) => a - b); // Sort descending
-};
-
-const months = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-];
-
-function generateUID() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
+import { useCalendar } from "../hooks/useCalendar";
+import { useSheetManager } from "../hooks/useSheetManager";
+import { useTasks } from "../hooks/useTasks";
+import type { Task } from "../types/task";
+import { generateUID, formatDate, getMonthSheetName } from "../utils/common";
 
 export default function TaskTracker() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [allTasks, setAllTasks] = useState<Task[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
-  const [tasksError, setTasksError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [number, setNumber] = useState("");
@@ -52,73 +22,26 @@ export default function TaskTracker() {
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
-
-  // Today logic
-  const today = new Date();
-  // Calendar state (default to today)
-  const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth());
-  const [selectedDay, setSelectedDay] = useState<number>(today.getDate());
-  const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
-
-  const handleToday = () => {
-    setSelectedYear(today.getFullYear());
-    setSelectedMonth(today.getMonth());
-    setSelectedDay(today.getDate());
-  };
+  const calendar = useCalendar();
+  const sheetManager = useSheetManager("/");
+  const { allTasks, loadingTasks, tasksError, fetchAllTasks } = useTasks(sheetManager.selectedSheetId);
 
   // Prefill date field when selected day changes
   useEffect(() => {
-    if (selectedYear !== null && selectedMonth !== null && selectedDay !== null) {
-      const yyyy = selectedYear;
-      const mm = String(selectedMonth + 1).padStart(2, '0');
-      const dd = String(selectedDay).padStart(2, '0');
-      setDate(`${yyyy}-${mm}-${dd}`);
-    }
-  }, [selectedYear, selectedMonth, selectedDay]);
-
-  const years = getYears(allTasks);
-
-  // Aggregation helpers
-  function getYearStats(year: number) {
-    const filtered = allTasks.filter(t => new Date(t.date).getFullYear() === year);
-    return {
-      count: filtered.length,
-      hours: filtered.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0),
-    };
-  }
-  function getMonthStats(year: number, month: number) {
-    const filtered = allTasks.filter(t => {
-      const d = new Date(t.date);
-      return d.getFullYear() === year && d.getMonth() === month;
-    });
-    return {
-      count: filtered.length,
-      hours: filtered.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0),
-    };
-  }
-  function getDayStats(year: number, month: number, day: number) {
-    const filtered = allTasks.filter(t => {
-      const d = new Date(t.date);
-      return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
-    });
-    return {
-      count: filtered.length,
-      hours: filtered.reduce((sum, t) => sum + (parseFloat(t.time) || 0), 0),
-    };
-  }
+    setDate(formatDate(calendar.selectedYear, calendar.selectedMonth, calendar.selectedDay));
+  }, [calendar.selectedYear, calendar.selectedMonth, calendar.selectedDay]);
 
   async function handleAdd() {
     if (!number.trim() || !description.trim() || !date.trim() || !time.trim()) return;
     setAdding(true);
     setAddError(null);
     const sheetId = localStorage.getItem("selectedSheetId");
-    if (!sheetId || selectedYear === null || selectedMonth === null) {
-      setAddError("No sheet or month selected");
+    if (!sheetId) {
+      setAddError("No sheet selected");
       setAdding(false);
       return;
     }
-    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+    const monthSheetName = getMonthSheetName(calendar.selectedYear, calendar.selectedMonth);
     const uid = generateUID();
     try {
       const res = await fetch("/api/sheets/add-task", {
@@ -152,11 +75,11 @@ export default function TaskTracker() {
     if (!uid) return;
     setDeletingUid(uid);
     const sheetId = localStorage.getItem("selectedSheetId");
-    if (!sheetId || selectedYear === null || selectedMonth === null) {
+    if (!sheetId) {
       setDeletingUid(null);
       return;
     }
-    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+    const monthSheetName = `${getMonthSheetName(calendar.selectedYear, calendar.selectedMonth)}`;
     try {
       const res = await fetch("/api/sheets/delete-task", {
         method: "POST",
@@ -189,12 +112,12 @@ export default function TaskTracker() {
     setUpdating(true);
     setUpdateError(null);
     const sheetId = localStorage.getItem("selectedSheetId");
-    if (!sheetId || selectedYear === null || selectedMonth === null) {
+    if (!sheetId) {
       setUpdateError("No sheet or month selected");
       setUpdating(false);
       return;
     }
-    const monthSheetName = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+    const monthSheetName = `${getMonthSheetName(calendar.selectedYear, calendar.selectedMonth)}`;
     try {
       const res = await fetch("/api/sheets/update-task", {
         method: "POST",
@@ -235,57 +158,28 @@ export default function TaskTracker() {
 
   // Filter tasks for selected day
   let visibleTasks: Task[] = [];
-  if (selectedYear !== null && selectedMonth !== null && selectedDay !== null) {
+  if (calendar.selectedYear !== null && calendar.selectedMonth !== null && calendar.selectedDay !== null) {
     visibleTasks = tasks.filter(t => {
       const d = new Date(t.date);
-      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth && d.getDate() === selectedDay;
+      return d.getFullYear() === calendar.selectedYear && d.getMonth() === calendar.selectedMonth && d.getDate() === calendar.selectedDay;
     });
   }
 
-  useEffect(() => {
-    setSelectedSheetId(localStorage.getItem("selectedSheetId"));
-  }, []);
 
-  async function fetchAllTasks() {
-    const sheetId = localStorage.getItem("selectedSheetId");
-    if (!sheetId) return;
-
-    setLoadingTasks(true);
-    setTasksError(null);
-
-    try {
-      const res = await fetch(`/api/sheets/get-all-tasks?sheetId=${encodeURIComponent(sheetId)}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setAllTasks(data.tasks || []);
-    } catch (err: unknown) {
-      setTasksError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoadingTasks(false);
-    }
-  }
-
-  useEffect(() => {
-    const sheetId = localStorage.getItem("selectedSheetId");
-    setSelectedSheetId(sheetId);
-    if (sheetId) {
-      fetchAllTasks();
-    }
-  }, [selectedSheetId]);
 
   useEffect(() => {
     const monthTasks = allTasks.filter(t => {
       const d = new Date(t.date);
-      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
+      return d.getFullYear() === calendar.selectedYear && d.getMonth() === calendar.selectedMonth;
     });
     setTasks(monthTasks);
-  }, [allTasks, selectedYear, selectedMonth]);
+  }, [allTasks, calendar.selectedYear, calendar.selectedMonth]);
 
   useEffect(() => {
     function handlePasteShortcut(e: KeyboardEvent) {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'v') {
-        if (selectedYear !== null && selectedMonth !== null && selectedDay !== null) {
+        if (calendar.selectedYear !== null && calendar.selectedMonth !== null && calendar.selectedDay !== null) {
           navigator.clipboard.readText().then(text => {
             // Only match if pattern is {text} - {text} and both sides are non-empty
             const match = text.match(/^(^[\w\d\-]+)\s-\s(.+)/);
@@ -300,38 +194,9 @@ export default function TaskTracker() {
     }
     window.addEventListener('keydown', handlePasteShortcut);
     return () => window.removeEventListener('keydown', handlePasteShortcut);
-  }, [selectedYear, selectedMonth, selectedDay]);
-
-  const { data: session } = useSession();
-  const [sheetName, setSheetName] = useState<string | null>(null);
-  const [showSheetModal, setShowSheetModal] = useState(false);
-  const router = useRouter();
-
-  useEffect(() => {
-    setSheetName(localStorage.getItem("selectedSheetName"));
-  }, []);
-
-  function handleSheetChange(sheet: { id: string; name: string }) {
-    localStorage.setItem("selectedSheetId", sheet.id);
-    localStorage.setItem("selectedSheetName", sheet.name);
-    setSheetName(sheet.name);
-    setSelectedSheetId(sheet.id);
-    setShowSheetModal(false);
-    router.replace("/"); // reloads with new sheet
-  }
+  }, [calendar.selectedYear, calendar.selectedMonth, calendar.selectedDay]);
 
 
-  // Handlers for CalendarNav
-  const handleYearSelect = (year: number) => {
-    setSelectedYear(year);
-    setSelectedMonth(0);
-    setSelectedDay(1);
-  };
-  const handleMonthSelect = (month: number) => {
-    setSelectedMonth(month);
-    setSelectedDay(1);
-  };
-  const handleDaySelect = (day: number) => setSelectedDay(day);
 
   // Handlers for TaskList
   const handleTaskDelete = (task: Task, e: React.MouseEvent<HTMLButtonElement>) => {
@@ -348,33 +213,22 @@ export default function TaskTracker() {
   };
 
   return (
-    <div className="bg-[#323438] min-h-screen text-[#e0e0e0] font-sans p-0">
-      <HeaderBar
-        session={session}
-        sheetName={sheetName}
-        onSheetClick={e => { e.stopPropagation(); setShowSheetModal(true); }}
-        onSignOut={e => { e.stopPropagation(); signOut(); }}
-        onImportSuccess={fetchAllTasks} // Refresh data after import
-      />
-      <SheetModal
-        open={showSheetModal}
-        onClose={() => setShowSheetModal(false)}
-        onSelectSheet={handleSheetChange}
-      />
-      <CalendarNav
-        years={years}
-        months={months}
-        selectedYear={selectedYear}
-        selectedMonth={selectedMonth}
-        selectedDay={selectedDay}
-        onYearSelect={handleYearSelect}
-        onMonthSelect={handleMonthSelect}
-        onDaySelect={handleDaySelect}
-        handleToday={handleToday}
-        getYearStats={getYearStats}
-        getMonthStats={getMonthStats}
-        getDayStats={getDayStats}
-      />
+    <PageLayout
+      allTasks={allTasks}
+      sheetName={sheetManager.sheetName}
+      showSheetModal={sheetManager.showSheetModal}
+      selectedYear={calendar.selectedYear}
+      selectedMonth={calendar.selectedMonth}
+      selectedDay={calendar.selectedDay}
+      onSheetClick={e => { e.stopPropagation(); sheetManager.openSheetModal(); }}
+      onSheetSelect={sheetManager.handleSheetChange}
+      onCloseSheetModal={sheetManager.closeSheetModal}
+      onYearSelect={calendar.handleYearSelect}
+      onMonthSelect={calendar.handleMonthSelect}
+      onDaySelect={calendar.handleDaySelect}
+      onToday={calendar.handleToday}
+      onImportSuccess={fetchAllTasks}
+    >
       <section className="mx-8 mb-6">
         <h2 className="font-medium text-2xl mt-8 mb-4 text-gray-200">Task List</h2>
         <TaskList
@@ -403,6 +257,6 @@ export default function TaskTracker() {
         addError={addError}
         updateError={updateError}
       />
-    </div>
+    </PageLayout>
   );
 } 
