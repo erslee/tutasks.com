@@ -8,6 +8,7 @@ import { useSheetManager } from "../hooks/useSheetManager";
 import { useTasks } from "../hooks/useTasks";
 import type { Task } from "../types/task";
 import { generateUID, formatDate, getMonthSheetName } from "../utils/common";
+import { apiClient } from "../lib/api-client";
 
 export default function TaskTracker() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -44,21 +45,15 @@ export default function TaskTracker() {
     const monthSheetName = getMonthSheetName(calendar.selectedYear, calendar.selectedMonth);
     const uid = generateUID();
     try {
-      const res = await fetch("/api/sheets/add-task", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sheetId,
-          monthSheetName,
-          number,
-          description,
-          date,
-          time,
-          uid,
-        }),
+      await apiClient.addTask({
+        sheetId,
+        monthSheetName,
+        number,
+        description,
+        date,
+        time,
+        uid,
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to add task");
       setNumber("");
       setDescription("");
       setDate("");
@@ -81,13 +76,7 @@ export default function TaskTracker() {
     }
     const monthSheetName = `${getMonthSheetName(calendar.selectedYear, calendar.selectedMonth)}`;
     try {
-      const res = await fetch("/api/sheets/delete-task", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheetId, monthSheetName, uid }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete task");
+      await apiClient.deleteTask({ sheetId, monthSheetName, uid });
       fetchAllTasks(); // Refetch all tasks
     } catch (err: unknown) {
       // Optionally show error
@@ -119,21 +108,15 @@ export default function TaskTracker() {
     }
     const monthSheetName = `${getMonthSheetName(calendar.selectedYear, calendar.selectedMonth)}`;
     try {
-      const res = await fetch("/api/sheets/update-task", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sheetId,
-          monthSheetName,
-          uid: editTask.uid,
-          number,
-          description,
-          date,
-          time,
-        }),
+      await apiClient.updateTask({
+        sheetId,
+        monthSheetName,
+        uid: editTask.uid,
+        number,
+        description,
+        date,
+        time,
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to update task");
       setEditTask(null);
       setNumber("");
       setDescription("");

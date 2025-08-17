@@ -1,11 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import React from "react";
-
-interface Sheet {
-  id: string;
-  name: string;
-}
+import { apiClient, type Sheet } from "../lib/api-client";
 
 export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: (sheet: Sheet) => void, onSelectSheet?: (sheet: Sheet) => void }) {
   const [sheets, setSheets] = useState<Sheet[]>([]);
@@ -22,8 +18,7 @@ export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: 
 
   useEffect(() => {
     setLoading(true);
-    fetch("/api/sheets/list", { credentials: "include" })
-      .then(res => res.json())
+    apiClient.listSheets()
       .then(data => {
         setSheets(data.sheets || []);
         setLoading(false);
@@ -38,21 +33,16 @@ export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: 
     setChecking(true);
     setIdentifierError(null);
     try {
-      const res = await fetch(`/api/sheets/check-identifier?sheetId=${sheet.id}`, { credentials: "include" });
-      const data = await res.json();
-      if (res.ok) {
-        if (data.hasIdentifier) {
-          // Proceed as normal
-          if (onSelect) onSelect(sheet);
-          if (onSelectSheet) onSelectSheet(sheet);
-          localStorage.setItem("selectedSheetId", sheet.id);
-          localStorage.setItem("selectedSheetName", sheet.name);
-        } else {
-          setPendingSheet(sheet);
-          setShowModal(true);
-        }
+      const data = await apiClient.checkIdentifier(sheet.id);
+      if (data.hasIdentifier) {
+        // Proceed as normal
+        if (onSelect) onSelect(sheet);
+        if (onSelectSheet) onSelectSheet(sheet);
+        localStorage.setItem("selectedSheetId", sheet.id);
+        localStorage.setItem("selectedSheetName", sheet.name);
       } else {
-        setIdentifierError(data.error || "Failed to check sheet");
+        setPendingSheet(sheet);
+        setShowModal(true);
       }
     } catch (err: unknown) {
       setIdentifierError(err instanceof Error ? err.message : String(err) || "Failed to check sheet");
@@ -86,14 +76,7 @@ export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: 
     setCreating(true);
     setCreateError(null);
     try {
-      const res = await fetch("/api/sheets/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: sheetName }),
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Unknown error");
+      const data = await apiClient.createSheet({ name: sheetName });
       const newSheet = { id: data.id, name: data.name };
       setSheets(prev => [...prev, newSheet]);
       handleSelect(newSheet);

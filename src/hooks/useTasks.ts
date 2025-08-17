@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Task } from "../types/task";
+import { apiClient } from "../lib/api-client";
 
 export function useTasks(selectedSheetId: string | null) {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -14,9 +15,7 @@ export function useTasks(selectedSheetId: string | null) {
     setTasksError(null);
 
     try {
-      const res = await fetch(`/api/sheets/get-all-tasks?sheetId=${encodeURIComponent(sheetId)}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      const data = await apiClient.getAllTasks(sheetId);
       setAllTasks(data.tasks || []);
     } catch (err: unknown) {
       setTasksError(err instanceof Error ? err.message : "Failed to load tasks");

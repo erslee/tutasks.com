@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef } from "react";
+import { apiClient } from "../lib/api-client";
 
 function generateUID() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -71,15 +72,8 @@ export default function CsvImport({ onImportSuccess }: { onImportSuccess: () => 
     }
     try {
       for (const [monthSheetName, rows] of Object.entries(monthGroups)) {
-        await fetch(`/api/sheets/get-tasks?sheetId=${encodeURIComponent(sheetId)}&monthSheetName=${encodeURIComponent(monthSheetName)}`);
         const values = rows.map(row => [row.uid, row.number, row.description, row.date, row.time]);
-        const resAppend = await fetch("/api/sheets/batch-append", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sheetId, monthSheetName, values }),
-        });
-        const dataAppend = await resAppend.json();
-        if (!resAppend.ok || !dataAppend.success) throw new Error(dataAppend.error || "Failed to add tasks");
+        await apiClient.batchAppend({ sheetId, monthSheetName, values });
       }
       setShowImportModal(false);
       setCsvPreview([]);
