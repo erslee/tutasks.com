@@ -10,9 +10,9 @@ const mockResponse = {
 
 // Test schema
 const testSchema = z.object({
-  name: z.string({ required_error: 'Name is required' }).min(1, 'Name is required'),
-  email: z.string({ required_error: 'Email is required' }).email('Invalid email'),
-  age: z.number({ required_error: 'Age is required' }).min(0, 'Age must be positive'),
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email'),
+  age: z.number().min(0, 'Age must be positive'),
 })
 
 describe('Validation utilities', () => {
@@ -28,7 +28,7 @@ describe('Validation utilities', () => {
           email: 'john@example.com',
           age: 30,
         },
-      } as NextApiRequest
+  } as unknown as NextApiRequest
 
       const result = validateRequestBody(testSchema, mockRequest)
 
@@ -48,7 +48,7 @@ describe('Validation utilities', () => {
           email: 'invalid-email',
           age: -5,
         },
-      } as NextApiRequest
+  } as unknown as NextApiRequest
 
       const result = validateRequestBody(testSchema, mockRequest)
 
@@ -62,7 +62,7 @@ describe('Validation utilities', () => {
     it('should return error for missing required fields', () => {
       const mockRequest = {
         body: {},
-      } as NextApiRequest
+  } as unknown as NextApiRequest
 
       const result = validateRequestBody(testSchema, mockRequest)
 
@@ -74,15 +74,15 @@ describe('Validation utilities', () => {
     })
 
     it('should handle non-ZodError exceptions', () => {
-      const mockSchema = {
+  const mockSchema = {
         parse: jest.fn().mockImplementation(() => {
           throw new Error('Generic error')
         }),
-      } as z.ZodSchema<unknown>
+  } as unknown as z.ZodSchema<unknown>
 
       const mockRequest = {
         body: { test: 'data' },
-      } as NextApiRequest
+  } as unknown as NextApiRequest
 
       const result = validateRequestBody(mockSchema, mockRequest)
 
@@ -103,7 +103,7 @@ describe('Validation utilities', () => {
           id: '123',
           page: '1',
         },
-      } as NextApiRequest
+  } as unknown as NextApiRequest
 
       const result = validateRequestQuery(querySchema, mockRequest)
 
@@ -119,7 +119,7 @@ describe('Validation utilities', () => {
         query: {
           id: '',
         },
-      } as NextApiRequest
+  } as unknown as NextApiRequest
 
       const result = validateRequestQuery(querySchema, mockRequest)
 
@@ -132,7 +132,7 @@ describe('Validation utilities', () => {
         query: {
           id: '123',
         },
-      } as NextApiRequest
+  } as unknown as NextApiRequest
 
       const result = validateRequestQuery(querySchema, mockRequest)
 
