@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { Session } from "next-auth";
+import ProviderIcon from "./ProviderIcon";
 
 export default function HeaderBar({ session, sheetName, onSheetClick, onSignOut }: {
   session: Session | null;
@@ -26,10 +27,11 @@ export default function HeaderBar({ session, sheetName, onSheetClick, onSignOut 
             {session.user.name}
             {sheetName && (
               <span
-                className="text-gray-400 font-normal ml-2 cursor-pointer underline"
+                className="text-gray-400 font-normal ml-2 cursor-pointer underline flex items-center gap-1"
                 onClick={onSheetClick}
                 title="Change sheet"
               >
+                <ProviderIcon provider={session?.provider} size={14} />
                 [{sheetName}]
               </span>
             )}
