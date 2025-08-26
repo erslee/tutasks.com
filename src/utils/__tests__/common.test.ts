@@ -1,4 +1,4 @@
-import { generateUID, formatDate, getMonthSheetName } from '../common'
+import { generateUID, formatDate, getMonthSheetName, isGoogleSheetsId } from '../common'
 
 describe('Common utilities', () => {
   describe('generateUID', () => {
@@ -63,6 +63,65 @@ describe('Common utilities', () => {
     it('should handle different years', () => {
       const sheetName = getMonthSheetName(2023, 5) // June 2023
       expect(sheetName).toBe('2023-06')
+    })
+  })
+
+  describe('isGoogleSheetsId', () => {
+    it('should identify typical Google Sheets IDs as Google Sheets', () => {
+      // Real Google Sheets ID format (long alphanumeric with underscores)
+      const googleId = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'
+      expect(isGoogleSheetsId(googleId)).toBe(true)
+    })
+
+    it('should identify Excel file IDs as NOT Google Sheets', () => {
+      // Excel file IDs typically contain hyphens
+      const excelId = '01ABCDEF123456789-ABCD-EFGH-IJKL-123456789012'
+      expect(isGoogleSheetsId(excelId)).toBe(false)
+    })
+
+    it('should reject IDs with exclamation marks', () => {
+      const idWithExclamation = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74!Sheet1'
+      expect(isGoogleSheetsId(idWithExclamation)).toBe(false)
+    })
+
+    it('should reject IDs with hyphens', () => {
+      const idWithHyphen = '1BxiMVs0XRA5nFMdKv-BdBZjgmUUqptlbs74OgvE2upms'
+      expect(isGoogleSheetsId(idWithHyphen)).toBe(false)
+    })
+
+    it('should reject short IDs', () => {
+      const shortId = 'shortid123'
+      expect(isGoogleSheetsId(shortId)).toBe(false)
+    })
+
+    it('should reject empty strings', () => {
+      expect(isGoogleSheetsId('')).toBe(false)
+    })
+
+    it('should reject null/undefined values', () => {
+      expect(isGoogleSheetsId(null as unknown as string)).toBe(false)
+      expect(isGoogleSheetsId(undefined as unknown as string)).toBe(false)
+    })
+
+    it('should reject non-string values', () => {
+      expect(isGoogleSheetsId(123 as unknown as string)).toBe(false)
+      expect(isGoogleSheetsId({} as unknown as string)).toBe(false)
+      expect(isGoogleSheetsId([] as unknown as string)).toBe(false)
+    })
+
+    it('should reject IDs with special characters', () => {
+      const idWithSpecialChars = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74@#$%'
+      expect(isGoogleSheetsId(idWithSpecialChars)).toBe(false)
+    })
+
+    it('should accept IDs with underscores', () => {
+      const idWithUnderscore = '1BxiMVs0XRA5nFMdKv_BdBZjgmUUqptlbs74OgvE2upms'
+      expect(isGoogleSheetsId(idWithUnderscore)).toBe(true)
+    })
+
+    it('should accept long alphanumeric IDs', () => {
+      const longAlphanumericId = '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+      expect(isGoogleSheetsId(longAlphanumericId)).toBe(true)
     })
   })
 })

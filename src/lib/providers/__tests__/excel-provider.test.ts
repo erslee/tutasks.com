@@ -4,10 +4,6 @@ import { Client } from '@microsoft/microsoft-graph-client'
 // Mock Microsoft Graph Client
 jest.mock('@microsoft/microsoft-graph-client')
 
-// Keep MockedClient for potential future use
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const MockedClient = Client as jest.MockedClass<typeof Client>
-
 // Lightweight mock shapes for the parts of Graph API we use in tests
 type GraphApiMock = {
   api: jest.Mock

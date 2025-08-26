@@ -13,7 +13,6 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@azure/msal-node": "^3.7.2",
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "googleapis": "^152.0.0",
     "next": "15.3.5",

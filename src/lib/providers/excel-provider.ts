@@ -1,4 +1,5 @@
 import { Client } from "@microsoft/microsoft-graph-client";
+import { isGoogleSheetsId } from "../../utils/common";
 import type {
   SpreadsheetProvider,
   SpreadsheetMetadata,
@@ -12,6 +13,12 @@ import type {
 } from "./types";
 
 const APP_VERSION = "1.0.0";
+
+// Excel-specific constants
+const EXCEL_MIN_SERIAL_NUMBER = 1;
+const EXCEL_EPOCH = new Date(1899, 11, 30); // December 30, 1899
+const EXCEL_HEADER_ROW = 1;
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export class ExcelProvider implements SpreadsheetProvider {
   constructor(private graphClient: Client) {}
@@ -62,8 +69,8 @@ export class ExcelProvider implements SpreadsheetProvider {
 
   async checkIdentifier(sheetId: string): Promise<CheckIdentifierResult> {
     try {
-      // Check if this looks like a Google Sheets ID (no exclamation marks, no hyphens, all alphanumeric)
-      if (sheetId && sheetId.length > 30 && !sheetId.includes('!') && !sheetId.includes('-') && /^[a-zA-Z0-9_]+$/.test(sheetId)) {
+      // Check if this looks like a Google Sheets ID
+      if (isGoogleSheetsId(sheetId)) {
         return { hasIdentifier: false };
       }
 
@@ -92,7 +99,7 @@ export class ExcelProvider implements SpreadsheetProvider {
     
     // 2. Find the next empty row and add the task
     // First, get the used range to find the last row
-    let lastRow = 1; // Start after header row
+    let lastRow = EXCEL_HEADER_ROW; // Start after header row
     try {
       const usedRangeResponse = await this.graphClient
         .api(`/me/drive/items/${request.sheetId}/workbook/worksheets/${request.monthSheetName}/usedRange`)
@@ -102,8 +109,8 @@ export class ExcelProvider implements SpreadsheetProvider {
         lastRow = usedRangeResponse.rowCount;
       }
     } catch {
-      // If no used range, start at row 2 (after header)
-      lastRow = 1;
+      // If no used range, start after header row
+      lastRow = EXCEL_HEADER_ROW;
     }
     
     // Add the task to the next row
@@ -165,7 +172,7 @@ export class ExcelProvider implements SpreadsheetProvider {
     await this.ensureWorksheetExists(request.sheetId, request.monthSheetName);
     
     // 2. Find the next empty row
-    let lastRow = 1; // Start after header row
+    let lastRow = EXCEL_HEADER_ROW; // Start after header row
     try {
       const usedRangeResponse = await this.graphClient
         .api(`/me/drive/items/${request.sheetId}/workbook/worksheets/${request.monthSheetName}/usedRange`)
@@ -175,8 +182,8 @@ export class ExcelProvider implements SpreadsheetProvider {
         lastRow = usedRangeResponse.rowCount;
       }
     } catch {
-      // If no used range, start at row 2 (after header)
-      lastRow = 1;
+      // If no used range, start after header row
+      lastRow = EXCEL_HEADER_ROW;
     }
     
     // 3. Batch append all rows starting from the next row
@@ -195,8 +202,8 @@ export class ExcelProvider implements SpreadsheetProvider {
 
   async getAllTasks(sheetId: string): Promise<{ tasks: Task[] }> {
     try {
-      // Check if this looks like a Google Sheets ID (no exclamation marks, no hyphens, all alphanumeric)
-      if (sheetId && sheetId.length > 30 && !sheetId.includes('!') && !sheetId.includes('-') && /^[a-zA-Z0-9_]+$/.test(sheetId)) {
+      // Check if this looks like a Google Sheets ID
+      if (isGoogleSheetsId(sheetId)) {
         throw new Error(`Invalid Excel file ID: This appears to be a Google Sheets ID. Please select an Excel file instead.`);
       }
 
@@ -260,11 +267,10 @@ export class ExcelProvider implements SpreadsheetProvider {
       return serialNumber;
     }
     
-    if (typeof serialNumber === 'number' && serialNumber > 1) {
+    if (typeof serialNumber === 'number' && serialNumber > EXCEL_MIN_SERIAL_NUMBER) {
       // Excel epoch: January 1, 1900 (but Excel incorrectly treats 1900 as a leap year)
       // So we need to subtract 2 days to get the correct date
-      const excelEpoch = new Date(1899, 11, 30); // December 30, 1899
-      const date = new Date(excelEpoch.getTime() + (serialNumber * 24 * 60 * 60 * 1000));
+      const date = new Date(EXCEL_EPOCH.getTime() + (serialNumber * MILLISECONDS_PER_DAY));
       
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');

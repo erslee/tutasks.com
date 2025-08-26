@@ -1,5 +1,8 @@
 import { Client } from "@microsoft/microsoft-graph-client";
 
+// Microsoft OAuth2 endpoints and configuration
+export const MICROSOFT_TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+
 // Required scopes for Excel Online operations
 export const MICROSOFT_SCOPES = [
   "Files.ReadWrite",
@@ -36,9 +39,6 @@ export async function refreshMicrosoftToken(refreshToken: string): Promise<Micro
   try {
     console.log("Attempting to refresh Microsoft token...");
     
-    // Use standard OAuth2 token refresh endpoint instead of MSAL
-    const tokenEndpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-    
     const params = new URLSearchParams({
       client_id: process.env.MICROSOFT_CLIENT_ID!,
       client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
@@ -47,7 +47,7 @@ export async function refreshMicrosoftToken(refreshToken: string): Promise<Micro
       scope: MICROSOFT_SCOPES.join(" "),
     });
 
-    const response = await fetch(tokenEndpoint, {
+    const response = await fetch(MICROSOFT_TOKEN_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
