@@ -23,11 +23,11 @@ export default function HeaderBar({ session, sheetName, onSheetClick, onSignOut 
           <img src={session.user.image} alt="avatar" className="w-7 h-7 rounded-full object-cover bg-[#222]" />
         )}
         {session?.user?.name && (
-          <span className="text-base font-normal">
+          <span className="text-base font-normal flex items-center">
             {session.user.name}
             {sheetName && (
               <span
-                className="text-gray-400 font-normal ml-2 cursor-pointer underline flex items-center gap-1"
+                className="text-gray-400 font-normal ml-2 cursor-pointer underline inline-flex items-center gap-1"
                 onClick={onSheetClick}
                 title="Change sheet"
               >
