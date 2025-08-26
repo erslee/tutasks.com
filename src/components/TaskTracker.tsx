@@ -36,8 +36,7 @@ export default function TaskTracker() {
     if (!number.trim() || !description.trim() || !date.trim() || !time.trim()) return;
     setAdding(true);
     setAddError(null);
-    const sheetId = localStorage.getItem("selectedSheetId");
-    if (!sheetId) {
+    if (!sheetManager.selectedSheetId) {
       setAddError("No sheet selected");
       setAdding(false);
       return;
@@ -46,7 +45,7 @@ export default function TaskTracker() {
     const uid = generateUID();
     try {
       await apiClient.addTask({
-        sheetId,
+        sheetId: sheetManager.selectedSheetId,
         monthSheetName,
         number,
         description,
@@ -69,14 +68,13 @@ export default function TaskTracker() {
   async function handleDelete(uid: string) {
     if (!uid) return;
     setDeletingUid(uid);
-    const sheetId = localStorage.getItem("selectedSheetId");
-    if (!sheetId) {
+    if (!sheetManager.selectedSheetId) {
       setDeletingUid(null);
       return;
     }
     const monthSheetName = `${getMonthSheetName(calendar.selectedYear, calendar.selectedMonth)}`;
     try {
-      await apiClient.deleteTask({ sheetId, monthSheetName, uid });
+      await apiClient.deleteTask({ sheetId: sheetManager.selectedSheetId, monthSheetName, uid });
       fetchAllTasks(); // Refetch all tasks
     } catch (err: unknown) {
       // Optionally show error
@@ -100,8 +98,7 @@ export default function TaskTracker() {
     if (!editTask || !editTask.uid) return;
     setUpdating(true);
     setUpdateError(null);
-    const sheetId = localStorage.getItem("selectedSheetId");
-    if (!sheetId) {
+    if (!sheetManager.selectedSheetId) {
       setUpdateError("No sheet or month selected");
       setUpdating(false);
       return;
@@ -109,7 +106,7 @@ export default function TaskTracker() {
     const monthSheetName = `${getMonthSheetName(calendar.selectedYear, calendar.selectedMonth)}`;
     try {
       await apiClient.updateTask({
-        sheetId,
+        sheetId: sheetManager.selectedSheetId,
         monthSheetName,
         uid: editTask.uid,
         number,
