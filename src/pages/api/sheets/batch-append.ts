@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { authenticateRequest, handleAuthError } from "../../../lib/auth-utils";
-import { createSpreadsheetProvider } from "../../../lib/providers";
+import { getSpreadsheetProvider, handleAuthError } from "../../../lib/auth-utils";
 import { batchAppendSchema, validateRequestBody, sendValidationError } from "../../../lib/validation";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -8,9 +7,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const authResult = await authenticateRequest(req, res);
-  if (!authResult.success) {
-    return handleAuthError(res, authResult.error || "Authentication failed");
+  const providerResult = await getSpreadsheetProvider(req, res);
+  if (!providerResult.success) {
+    return handleAuthError(res, providerResult.error || "Authentication failed");
   }
 
   const validation = validateRequestBody(batchAppendSchema, req);
@@ -21,11 +20,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { sheetId, monthSheetName, values } = validation.data!;
 
   try {
-    const provider = createSpreadsheetProvider("google-sheets", authResult.oauth2Client!);
-    const result = await provider.batchAppend({ sheetId, monthSheetName, values });
+    const result = await providerResult.provider!.batchAppend({ sheetId, monthSheetName, values });
     res.status(200).json(result);
   } catch (error: unknown) {
-    console.error("Google Sheets batch-append API error:", error);
+    console.error("Spreadsheet batch-append API error:", error);
     res.status(500).json({ error: "Failed to batch append tasks", details: error instanceof Error ? error.message : String(error) });
   }
 } 

@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { authenticateRequest, handleAuthError } from "../../../lib/auth-utils";
-import { createSpreadsheetProvider } from "../../../lib/providers";
+import { getSpreadsheetProvider, handleAuthError } from "../../../lib/auth-utils";
 import { updateTaskSchema, validateRequestBody, sendValidationError } from "../../../lib/validation";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -8,9 +7,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const authResult = await authenticateRequest(req, res);
-  if (!authResult.success) {
-    return handleAuthError(res, authResult.error || "Authentication failed");
+  const providerResult = await getSpreadsheetProvider(req, res);
+  if (!providerResult.success) {
+    return handleAuthError(res, providerResult.error || "Authentication failed");
   }
 
   const validation = validateRequestBody(updateTaskSchema, req);
@@ -21,8 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { sheetId, monthSheetName, uid, number, description, date, time } = validation.data!;
 
   try {
-    const provider = createSpreadsheetProvider("google-sheets", authResult.oauth2Client!);
-    const result = await provider.updateTask({
+    const result = await providerResult.provider!.updateTask({
       sheetId,
       monthSheetName,
       uid,
@@ -33,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     res.status(200).json(result);
   } catch (error: unknown) {
-    console.error("Google Sheets update-task API error:", error);
+    console.error("Spreadsheet update-task API error:", error);
     res.status(500).json({ error: "Failed to update task", details: error instanceof Error ? error.message : String(error) });
   }
 } 

@@ -38,8 +38,6 @@ export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: 
         // Proceed as normal
         if (onSelect) onSelect(sheet);
         if (onSelectSheet) onSelectSheet(sheet);
-        localStorage.setItem("selectedSheetId", sheet.id);
-        localStorage.setItem("selectedSheetName", sheet.name);
       } else {
         setPendingSheet(sheet);
         setShowModal(true);
@@ -60,8 +58,6 @@ export default function SheetSelector({ onSelect, onSelectSheet }: { onSelect?: 
     if (pendingSheet) {
       if (onSelect) onSelect(pendingSheet);
       if (onSelectSheet) onSelectSheet(pendingSheet);
-      localStorage.setItem("selectedSheetId", pendingSheet.id);
-      localStorage.setItem("selectedSheetName", pendingSheet.name);
       setShowModal(false);
       setPendingSheet(null);
     }

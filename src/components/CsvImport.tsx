@@ -6,7 +6,7 @@ function generateUID() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-export default function CsvImport({ onImportSuccess }: { onImportSuccess: () => void }) {
+export default function CsvImport({ onImportSuccess, sheetId }: { onImportSuccess: () => void; sheetId: string | null }) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [csvPreview, setCsvPreview] = useState<Record<string, string>[]>([]);
   const [csvError, setCsvError] = useState<string | null>(null);
@@ -53,7 +53,6 @@ export default function CsvImport({ onImportSuccess }: { onImportSuccess: () => 
 
   async function handleCsvImportConfirm() {
     setCsvError(null);
-    const sheetId = localStorage.getItem("selectedSheetId");
     if (!sheetId) {
       setCsvError("No sheet selected");
       return;

@@ -1,12 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { authenticateRequest, handleAuthError } from "../../../lib/auth-utils";
-import { createSpreadsheetProvider } from "../../../lib/providers";
+import { getSpreadsheetProvider, handleAuthError } from "../../../lib/auth-utils";
 import { checkIdentifierSchema, validateRequestQuery, sendValidationError } from "../../../lib/validation";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const authResult = await authenticateRequest(req, res);
-  if (!authResult.success) {
-    return handleAuthError(res, authResult.error || "Authentication failed");
+  const providerResult = await getSpreadsheetProvider(req, res);
+  if (!providerResult.success) {
+    return handleAuthError(res, providerResult.error || "Authentication failed");
   }
 
   const validation = validateRequestQuery(checkIdentifierSchema, req);
@@ -17,11 +16,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { sheetId } = validation.data!;
 
   try {
-    const provider = createSpreadsheetProvider("google-sheets", authResult.oauth2Client!);
-    const result = await provider.checkIdentifier(sheetId as string);
+    const result = await providerResult.provider!.checkIdentifier(sheetId as string);
     res.status(200).json(result);
   } catch (error: unknown) {
-    console.error("Google Sheets check-identifier API error:", error);
+    console.error("Spreadsheet check-identifier API error:", error);
     res.status(500).json({ error: "Failed to check identifier", details: error instanceof Error ? error.message : String(error) });
   }
 } 
